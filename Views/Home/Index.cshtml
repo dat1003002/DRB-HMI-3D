@@ -1,0 +1,100 @@
+﻿<div class="ai-machine-grid" id="aiMachineGrid"></div>
+
+<script>
+    const machines = [
+        { name: "MÁY 01", pressure1: "193.1", pressure2: "196.0", topTemp: "148.6", middleTemp: "149.5", bottomTemp: "150.1", travel1: "50", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
+        { name: "MÁY 02", pressure1: "194.5", pressure2: "196.0", topTemp: "149.2", middleTemp: "150.0", bottomTemp: "149.7", travel1: "45", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
+        { name: "MÁY 03", pressure1: "192.3", pressure2: "196.0", topTemp: "147.9", middleTemp: "149.1", bottomTemp: "150.5", travel1: "48", travel2: "80", status: "Không hoạt động", image: "/image/ngungmay.png" },
+        { name: "MÁY 04", pressure1: "193.8", pressure2: "196.0", topTemp: "148.3", middleTemp: "149.9", bottomTemp: "150.2", travel1: "55", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
+        { name: "MÁY 05", pressure1: "195.0", pressure2: "196.0", topTemp: "149.8", middleTemp: "150.3", bottomTemp: "150.0", travel1: "52", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
+        { name: "MÁY 06", pressure1: "175.8", pressure2: "196.0", topTemp: "147.5", middleTemp: "148.8", bottomTemp: "149.6", travel1: "46", travel2: "80", status: "Hoạt động", image: "/image/mayloi.png" }
+    ];
+
+    const grid = document.getElementById("aiMachineGrid");
+
+    machines.forEach(machine => {
+        const isActive = machine.status === "Hoạt động";
+        const inactiveClass = isActive ? '' : ' inactive';
+
+        const p1 = parseFloat(machine.pressure1);
+        const isPressureOut = Math.abs(p1 - 196.0) > 5;
+        const isLowPressure = p1 < 191;
+
+        const boxWarningClass = (isLowPressure || isPressureOut) ? ' pressure-warning' : '';
+        const pressureClass = (isLowPressure || isPressureOut) ? ' pressure-low' : '';
+
+        const statusText = isPressureOut ? 'Lệch Áp Suất' : (isLowPressure ? 'Cảnh báo' : machine.status);
+        const statusClass = (isLowPressure || isPressureOut) ? ' warning' : '';
+
+        const startClass = isActive ? 'ai-machine-start active' : 'ai-machine-start dim';
+        const stopClass = isActive ? 'ai-machine-stop dim' : 'ai-machine-stop active';
+
+        grid.innerHTML += `
+        <div class="ai-machine-card${inactiveClass}">
+            <div class="ai-machine-topbar">
+                <div class="ai-machine-name">${machine.name}</div>
+                <div class="ai-machine-status">
+                    <div class="ai-machine-dot"></div>
+                    ${machine.status}
+                </div>
+                <button class="ai-machine-btn ${startClass}">START</button>
+                <button class="ai-machine-btn ${stopClass}">STOP</button>
+            </div>
+            <div class="ai-machine-content">
+                <div class="ai-machine-left">
+                    <div class="ai-machine-box${boxWarningClass}">
+                        <div class="ai-machine-box-title">Áp Lực</div>
+                        <div class="ai-machine-row">
+                            <div class="ai-machine-line ai-machine-green"></div>
+                            <div class="ai-machine-value${pressureClass}">${machine.pressure1}<br>Thực Tế</div>
+                        </div>
+                        <div class="ai-machine-row">
+                            <div class="ai-machine-line ai-machine-blue"></div>
+                            <div class="ai-machine-value ai-machine-white">${machine.pressure2}<br>Tiêu Chuẩn</div>
+                        </div>
+                    </div>
+                    <div class="ai-machine-box">
+                        <div class="ai-machine-box-title">Nhiệt độ</div>
+                        <div class="ai-machine-temp">
+                            <span>Trên</span><b>${machine.topTemp}</b>
+                            <span>Giữa</span><b>${machine.middleTemp}</b>
+                            <span>Dưới</span><b>${machine.bottomTemp}</b>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-machine-center">
+                    <img src="${machine.image}" class="ai-machine-image ${isPressureOut ? 'blink-red' : ''}">
+                </div>
+                <div class="ai-machine-right">
+                    <div class="ai-machine-box">
+                        <div class="ai-machine-box-title">Air vent</div>
+                        <div class="ai-machine-right-value">3</div>
+                    </div>
+                    <div class="ai-machine-box">
+                        <div class="ai-machine-box-title">Thời Gian</div>
+                        <div class="ai-machine-row">
+                            <div class="ai-machine-line ai-machine-green"></div>
+                            <div class="ai-machine-value">${machine.travel1}<br>Phút</div>
+                        </div>
+                        <div class="ai-machine-row">
+                            <div class="ai-machine-line ai-machine-blue"></div>
+                            <div class="ai-machine-value ai-machine-white">${machine.travel2}<br>Phút</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-machine-footer">
+                    <div class="ai-machine-gauge"></div>
+                    <div>
+                        <div style="font-size:13px;color:#ddd;">Thơi Gian Lưu Hóa</div>
+                        <div class="ai-machine-value${pressureClass}">${machine.travel1} Phút</div>
+                    </div>
+                    <div class="ai-machine-footer-status${statusClass}">
+                        Trạng thái: <span>${statusText}</span>
+                        <a href="#" class="ai-machine-link">Chi tiết →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+</script>

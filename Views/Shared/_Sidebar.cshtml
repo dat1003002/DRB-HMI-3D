@@ -1,0 +1,154 @@
+﻿<div id="sidebar" class="sidebar w-20 h-screen fixed top-0 left-0 flex flex-col">
+    <div class="sidebar-header">
+        <button id="toggleBtn">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="logo-container">
+            <img src="/image/logo2.png" alt="DRB Logo" id="logoDRB">
+        </div>
+    </div>
+    <nav>
+        <ul class="space-y-1">
+            <li>
+                <a href="/Home/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Home/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-house"></i></div>
+                    <span class="text-label">Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Banbury/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Banbury/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-industry"></i></div>
+                    <span class="text-label">Forming</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Press/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Press/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-cogs"></i></div>
+                    <span class="text-label">Press</span>
+                </a>
+            </li>
+            <li>
+                <a href="/MetalCore/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/MetalCore/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-cube"></i></div>
+                    <span class="text-label">Băng Tải</span>
+                </a>
+            </li>
+            <li>
+                <a href="/SteelCord/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/SteelCord/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-link"></i></div>
+                    <span class="text-label">BanBury</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Forming/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Forming/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-shapes"></i></div>
+                    <span class="text-label">Forming</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Storage/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Storage/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <span class="text-label">Storage</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Predss/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Pressd/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-compress"></i></div>
+                    <span class="text-label">Press</span>
+                </a>
+            </li>
+            <li>
+                <a href="/AutoWH/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/AutoWH/Index" ? "active" : "")">
+                    <div class="icon-wrapper"><i class="fa-solid fa-robot"></i></div>
+                    <span class="text-label">Auto W-H</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<script>
+     document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const fsButton = document.getElementById('fullscreen-btn');
+        const fsIcon = fsButton ? fsButton.querySelector('i') : null;
+
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', function () {
+                if (document.fullscreenElement) {
+                    return;
+                }
+
+                if (sidebar.classList.contains('w-20')) {
+                    sidebar.classList.remove('w-20');
+                    sidebar.classList.add('w-64');
+
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-20');
+                        mainContent.classList.add('ml-64');
+                    }
+                } else {
+                    sidebar.classList.remove('w-64');
+                    sidebar.classList.add('w-20');
+
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-64');
+                        mainContent.classList.add('ml-20');
+                    }
+                }
+            });
+        }
+
+        if (fsButton) {
+            fsButton.addEventListener('click', async function () {
+                try {
+                    if (!document.fullscreenElement) {
+                        await document.documentElement.requestFullscreen();
+                    } else {
+                        await document.exitFullscreen();
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', function () {
+            if (document.fullscreenElement) {
+                document.body.classList.add('fullscreen-active');
+
+                if (fsIcon) {
+                    fsIcon.classList.remove('fa-expand');
+                    fsIcon.classList.add('fa-compress');
+                }
+
+                if (mainContent) {
+                    mainContent.classList.remove('ml-20');
+                    mainContent.classList.remove('ml-64');
+                    mainContent.classList.add('ml-0');
+                }
+            } else {
+                document.body.classList.remove('fullscreen-active');
+
+                if (fsIcon) {
+                    fsIcon.classList.remove('fa-compress');
+                    fsIcon.classList.add('fa-expand');
+                }
+
+                if (mainContent) {
+                    mainContent.classList.remove('ml-0');
+
+                    if (sidebar && sidebar.classList.contains('w-64')) {
+                        mainContent.classList.remove('ml-20');
+                        mainContent.classList.add('ml-64');
+                    } else {
+                        mainContent.classList.remove('ml-64');
+                        mainContent.classList.add('ml-20');
+                    }
+                }
+            }
+        });
+    });
+</script>

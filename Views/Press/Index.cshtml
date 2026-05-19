@@ -1,0 +1,97 @@
+﻿@{
+    ViewData["Title"] = "Press";
+}
+
+<div class="drb6-wrap">
+    <main class="drb6-dashboard" id="drb6-dashboard"></main>
+</div>
+
+<script>
+    const drb6Dashboard = document.getElementById("drb6-dashboard");
+
+    const drb6Icons = {
+        time: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l4 2"></path></svg>`,
+        pressure: `<svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"></path><path d="M12 16l5-6"></path><path d="M6 20h12"></path></svg>`,
+        temp: `<svg viewBox="0 0 24 24"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"></path><path d="M12 7v8"></path></svg>`
+    };
+
+    function drb6SafeNumber(value, fixed = 1) {
+        const number = Number(value);
+        if (Number.isNaN(number)) return "--";
+        return number.toFixed(fixed);
+    }
+
+    function drb6Row(icon, label, standard, value, unit = "", alertClass = "") {
+        return `
+            <div class="drb6-row">
+                <div class="drb6-cell drb6-label-cell">
+                    <span class="drb6-icon">${icon}</span>
+                    <span>${label}</span>
+                </div>
+                <div class="drb6-cell drb6-std-cell">
+                    ${standard}
+                </div>
+                <div class="drb6-cell drb6-value-cell">
+                    ${value}${unit ? `<span class="drb6-unit">${unit}</span>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    // Sửa hàm formatMinutes để trực tiếp hiển thị số phút
+    function formatMinutes(minutes) {
+        if (minutes == null || minutes === 0) return "--";
+        return `${minutes} phút`;
+    }
+
+    function drb6CreateCard(machine) {
+        const id = Number(String(machine.machine).replace("CTL", ""));
+        const isStart = Number(machine.startStop) === 1;
+        const status = isStart ? "START" : "STOP";
+        const statusClass = isStart ? "drb6-start" : "drb6-stop";
+        const statusIcon = isStart ? `<span class="drb6-play"></span>` : `<span class="drb6-square"></span>`;
+
+        return `
+            <section class="drb6-card">
+                <div class="drb6-title">
+                    DEKUMA PRESS #${String(id).padStart(2, "0")}
+                </div>
+                <div class="drb6-table">
+                    <div class="drb6-row drb6-header-row">
+                        <div class="drb6-cell drb6-start-cell">
+                            <div class="drb6-btn-status ${statusClass}">
+                                ${statusIcon} ${status}
+                            </div>
+                        </div>
+                        <div class="drb6-cell drb6-head-cell">TIÊU CHUẨN</div>
+                        <div class="drb6-cell drb6-head-cell">HIỆN TẠI</div>
+                    </div>
+
+                    ${drb6Row(drb6Icons.time, "THỜI GIAN", "Vdse-i-406", formatMinutes(machine.thoiGianLuuHoa))}
+                    ${drb6Row(drb6Icons.pressure, "ÁP LỰC", "196 (±10) Kgf/cm<sup>2</sup>", drb6SafeNumber(machine.apLuc, 1))}
+                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ TRÊN", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamTren, 1), "°C")}
+                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ GIỮA", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamGiua, 1), "°C")}
+                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ DƯỚI", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamDuoi, 1), "°C")}
+                </div>
+            </section>
+        `;
+    }
+
+    async function drb6LoadRealtime() {
+        try {
+            const response = await fetch("/Press/GetAllMachines", { cache: "no-store" });
+            if (!response.ok) throw new Error("Không lấy được dữ liệu từ server");
+            const machines = await response.json();
+            if (!drb6Dashboard) return;
+            drb6Dashboard.innerHTML = machines.map(drb6CreateCard).join("");
+        } catch (error) {
+            console.error("Lỗi lấy dữ liệu máy:", error);
+            if (drb6Dashboard) {
+                drb6Dashboard.innerHTML = `<div style="color:white;font-size:24px;padding:30px;">Lỗi kết nối dữ liệu máy ép</div>`;
+            }
+        }
+    }
+
+    drb6LoadRealtime();
+    setInterval(drb6LoadRealtime, 1000);
+</script>

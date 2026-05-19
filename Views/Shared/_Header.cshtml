@@ -1,0 +1,67 @@
+﻿<header class="header">
+    <div class="left">
+        <img src="/image/logo2.png" alt="Company Logo" class="company-logo">
+    </div>
+
+    <div class="center">
+
+        <div class="frame-decor">
+            <div class="frame-line"></div>
+        </div>
+
+        <div class="title-container">
+            <div class="title">HMI OVERVIEW</div>
+            <div class="glow-line"></div>
+        </div>
+
+        <div class="frame-decor">
+            <div class="frame-line"></div>
+        </div>
+
+    </div>
+
+    <div class="right" id="fullscreen-btn">
+        <i class="fa-solid fa-expand"></i>
+    </div>
+</header>
+
+<script>
+
+    const fsButton = document.getElementById('fullscreen-btn');
+    const icon = fsButton.querySelector('i');
+
+    fsButton.addEventListener('click', async () => {
+
+        if (!document.fullscreenElement) {
+
+            await document.documentElement.requestFullscreen();
+
+        } else {
+
+            await document.exitFullscreen();
+
+        }
+
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+
+        if (document.fullscreenElement) {
+
+            document.body.classList.add('fullscreen-active');
+
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+
+        } else {
+
+            document.body.classList.remove('fullscreen-active');
+
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+
+        }
+
+    });
+
+</script>

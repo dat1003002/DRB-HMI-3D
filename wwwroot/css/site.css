@@ -1,0 +1,85 @@
+﻿html {
+    font-size: 14px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #020b16;
+}
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem rgba(255,255,255,0.6), 0 0 0 0.25rem #258cfb;
+    outline: none;
+}
+
+.app-layout {
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 72px 1fr;
+    overflow: hidden;
+}
+
+.app-shell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    overflow: hidden;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all .3s ease;
+}
+
+.app-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 12px;
+}
+
+.app-render {
+    width: 100%;
+    min-height: 100%;
+}
+
+.custom-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+    background: #07111d;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #0ea5e9, #0284c7);
+    border-radius: 10px;
+}
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+    }

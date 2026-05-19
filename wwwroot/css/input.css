@@ -1,0 +1,10 @@
+﻿@import "tailwindcss";
+
+/* ====================== QUAN TRỌNG: Scan tất cả file .cshtml ====================== */
+@source "./**/*.cshtml";
+@source "../**/*.cshtml";
+@source "../../**/*.cshtml";
+
+/* Nếu bạn có folder Views ở nhiều nơi */
+@source "Views/**/*.cshtml";
+@source "Areas/**/*.cshtml";

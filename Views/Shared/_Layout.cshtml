@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - DRB_HMI_3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../lib/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/header.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/nav.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/press.css" asp-append-version="true" />
+
+</head>
+<body>
+    <div class="app-layout">
+
+        @Html.Partial("_Header")
+
+        <div class="app-shell">
+
+            @Html.Partial("_Sidebar")
+
+            <div id="mainContent" class="app-main">
+
+                <div class="app-content custom-scroll">
+
+                    <main role="main" class="app-render" id="renderBodyContent">
+                        @RenderBody()
+                    </main>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>
