@@ -1,10 +1,22 @@
 {
-  "version": "3.0",
-  "defaultProvider": "unpkg",
-  "libraries": [
-    {
-      "library": "@fortawesome/fontawesome-free@7.2.0",
-      "destination": "wwwroot/lib/fontawesome"
-    }
-  ]
+    "version": "1.0",
+    "defaultProvider": "jsdelivr",
+    "libraries": [
+        {
+            "library": "@fortawesome/fontawesome-free@7.2.0",
+            "destination": "wwwroot/lib/fontawesome/",
+            "files": [
+                "css/all.min.css",
+                "js/all.min.js",
+                "webfonts/*"
+            ]
+        },
+        {
+            "library": "@microsoft/signalr@8.0.7",
+            "destination": "wwwroot/lib/microsoft/signalr/",
+            "files": [
+                "dist/browser/signalr.min.js"
+            ]
+        }
+    ]
 }

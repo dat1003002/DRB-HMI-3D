@@ -1,35 +1,20 @@
 {
     "name": "drb-hmi-3d",
     "version": "1.0.0",
-    "description": "",
+    "description": "HMI 3D Monitoring System for Workshop & Press Machines",
     "main": "index.js",
+    "type": "module",
     "scripts": {
-        "build:css": "npx @tailwindcss/cli -i ./wwwroot/css/input.css -o ./wwwroot/css/output.css --minify",
-        "watch:css": "npx @tailwindcss/cli -i ./wwwroot/css/input.css -o ./wwwroot/css/output.css --watch",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "build:css": "tailwindcss -i ./wwwroot/css/tailwind-input.css -o ./wwwroot/css/tailwind-output.css --minify",
+        "watch:css": "tailwindcss -i ./wwwroot/css/tailwind-input.css -o ./wwwroot/css/tailwind-output.css --watch",
+        "build": "npm run build:css",
+        "dev": "npm run watch:css"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "type": "commonjs",
     "devDependencies": {
         "@tailwindcss/cli": "^4.3.0",
-        "autoprefixer": "^10.5.0",
-        "postcss": "^8.5.14",
         "tailwindcss": "^4.3.0"
     },
     "dependencies": {
-        "baseline-browser-mapping": "^2.10.29",
-        "browserslist": "^4.28.2",
-        "caniuse-lite": "^1.0.30001792",
-        "electron-to-chromium": "^1.5.357",
-        "escalade": "^3.2.0",
-        "fraction.js": "^5.3.4",
-        "nanoid": "^3.3.12",
-        "node-releases": "^2.0.44",
-        "picocolors": "^1.1.1",
-        "postcss-value-parser": "^4.2.0",
-        "source-map-js": "^1.2.1",
-        "update-browserslist-db": "^1.2.3"
+        "@fortawesome/fontawesome-free": "^7.2.0"
     }
 }

@@ -1,163 +1,305 @@
-﻿using Opc.Ua;
-using Opc.Ua.Client;
-using Opc.Ua.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+﻿//using Opc.Ua;
+//using Opc.Ua.Client;
+//using Opc.Ua.Configuration;
+//using System;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Threading;
+//using System.Threading.Tasks;
 
-namespace DRB_HMI_3D.Services
-{
-    public class KepwareService
-    {
-        private readonly string _endpointUrl = "opc.tcp://192.168.41.30:49320";
-        private ApplicationConfiguration _config;
-        private Session _session;
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
+//namespace DRB_HMI_3D.Services
+//{
+//    public class KepwareService
+//    {
+//        private readonly string _endpointUrl = "opc.tcp://192.168.41.30:49320";
 
-        public async Task<object> ReadTagAsync(string nodeId)
-        {
-            await EnsureConnectedAsync();
+//        private ApplicationConfiguration _config;
+//        private Session _session;
 
-            var value = _session.ReadValue(NodeId.Parse(nodeId));
+//        private readonly SemaphoreSlim _connectLock = new SemaphoreSlim(1, 1);
+//        private readonly SemaphoreSlim _readLock = new SemaphoreSlim(1, 1);
 
-            return value.Value;
-        }
+//        public async Task<object> ReadTagAsync(string nodeId)
+//        {
+//            if (string.IsNullOrWhiteSpace(nodeId))
+//            {
+//                return null;
+//            }
 
-        public async Task<Dictionary<string, object>> ReadMultipleTagsAsync(List<string> nodeIds)
-        {
-            await EnsureConnectedAsync();
+//            var values = await ReadMultipleTagsAsync(new List<string> { nodeId });
+//            var key = nodeId.Trim();
 
-            var nodesToRead = new ReadValueIdCollection();
+//            return values.ContainsKey(key) ? values[key] : null;
+//        }
 
-            foreach (var nodeId in nodeIds)
-            {
-                nodesToRead.Add(new ReadValueId
-                {
-                    NodeId = NodeId.Parse(nodeId),
-                    AttributeId = Attributes.Value
-                });
-            }
+//        public async Task<Dictionary<string, object>> ReadMultipleTagsAsync(List<string> nodeIds)
+//        {
+//            var data = new Dictionary<string, object>();
 
-            _session.Read(
-                null,
-                0,
-                TimestampsToReturn.Neither,
-                nodesToRead,
-                out DataValueCollection results,
-                out DiagnosticInfoCollection diagnosticInfos
-            );
+//            if (nodeIds == null || nodeIds.Count == 0)
+//            {
+//                return data;
+//            }
 
-            ClientBase.ValidateResponse(results, nodesToRead);
-            ClientBase.ValidateDiagnosticInfos(diagnosticInfos, nodesToRead);
+//            var validNodeIds = nodeIds
+//                .Where(x => !string.IsNullOrWhiteSpace(x))
+//                .Select(x => x.Trim())
+//                .Distinct()
+//                .ToList();
 
-            var data = new Dictionary<string, object>();
+//            foreach (var nodeId in validNodeIds)
+//            {
+//                data[nodeId] = null;
+//            }
 
-            for (int i = 0; i < nodeIds.Count; i++)
-            {
-                data[nodeIds[i]] = results[i].Value;
-            }
+//            if (validNodeIds.Count == 0)
+//            {
+//                return data;
+//            }
 
-            return data;
-        }
+//            var connected = await EnsureConnectedAsync();
 
-        private async Task EnsureConnectedAsync()
-        {
-            if (_session != null && _session.Connected)
-                return;
+//            if (!connected || _session == null || !_session.Connected)
+//            {
+//                return data;
+//            }
 
-            await _lock.WaitAsync();
+//            var lockTaken = await _readLock.WaitAsync(TimeSpan.FromSeconds(3));
 
-            try
-            {
-                if (_session != null && _session.Connected)
-                    return;
+//            if (!lockTaken)
+//            {
+//                return data;
+//            }
 
-                _config = new ApplicationConfiguration
-                {
-                    ApplicationName = "DRB_HMI_3D",
-                    ApplicationUri = "urn:localhost:DRB_HMI_3D",
-                    ApplicationType = ApplicationType.Client,
+//            try
+//            {
+//                const int batchSize = 80;
 
-                    SecurityConfiguration = new SecurityConfiguration
-                    {
-                        ApplicationCertificate = new CertificateIdentifier
-                        {
-                            StoreType = "Directory",
-                            StorePath = "OPCFoundation/CertificateStores/MachineDefault",
-                            SubjectName = "DRB_HMI_3D"
-                        },
+//                for (int start = 0; start < validNodeIds.Count; start += batchSize)
+//                {
+//                    if (_session == null || !_session.Connected)
+//                    {
+//                        break;
+//                    }
 
-                        TrustedPeerCertificates = new CertificateTrustList
-                        {
-                            StoreType = "Directory",
-                            StorePath = "OPCFoundation/CertificateStores/UA Applications"
-                        },
+//                    var batch = validNodeIds
+//                        .Skip(start)
+//                        .Take(batchSize)
+//                        .ToList();
 
-                        TrustedIssuerCertificates = new CertificateTrustList
-                        {
-                            StoreType = "Directory",
-                            StorePath = "OPCFoundation/CertificateStores/UA Certificate Authorities"
-                        },
+//                    var nodesToRead = new ReadValueIdCollection();
+//                    var readKeys = new List<string>();
 
-                        RejectedCertificateStore = new CertificateTrustList
-                        {
-                            StoreType = "Directory",
-                            StorePath = "OPCFoundation/CertificateStores/RejectedCertificates"
-                        },
+//                    foreach (var nodeId in batch)
+//                    {
+//                        try
+//                        {
+//                            nodesToRead.Add(new ReadValueId
+//                            {
+//                                NodeId = NodeId.Parse(nodeId),
+//                                AttributeId = Attributes.Value
+//                            });
 
-                        AutoAcceptUntrustedCertificates = true,
-                        AddAppCertToTrustedStore = true
-                    },
+//                            readKeys.Add(nodeId);
+//                        }
+//                        catch
+//                        {
+//                            data[nodeId] = null;
+//                        }
+//                    }
 
-                    TransportConfigurations = new TransportConfigurationCollection(),
+//                    if (nodesToRead.Count == 0)
+//                    {
+//                        continue;
+//                    }
 
-                    TransportQuotas = new TransportQuotas
-                    {
-                        OperationTimeout = 15000
-                    },
+//                    DataValueCollection results;
+//                    DiagnosticInfoCollection diagnosticInfos;
 
-                    ClientConfiguration = new ClientConfiguration
-                    {
-                        DefaultSessionTimeout = 60000
-                    }
-                };
+//                    _session.Read(
+//                        null,
+//                        0,
+//                        TimestampsToReturn.Neither,
+//                        nodesToRead,
+//                        out results,
+//                        out diagnosticInfos
+//                    );
 
-                await _config.Validate(ApplicationType.Client);
+//                    for (int i = 0; i < readKeys.Count; i++)
+//                    {
+//                        var key = readKeys[i];
 
-                _config.CertificateValidator.CertificateValidation += (sender, e) =>
-                {
-                    e.Accept = true;
-                };
+//                        if (results == null || i >= results.Count)
+//                        {
+//                            data[key] = null;
+//                            continue;
+//                        }
 
-                var endpointDescription = CoreClientUtils.SelectEndpoint(
-                    _config,
-                    _endpointUrl,
-                    false
-                );
+//                        var result = results[i];
 
-                var endpointConfiguration = EndpointConfiguration.Create(_config);
+//                        if (result == null || StatusCode.IsBad(result.StatusCode))
+//                        {
+//                            data[key] = null;
+//                        }
+//                        else
+//                        {
+//                            data[key] = result.Value;
+//                        }
+//                    }
+//                }
+//            }
+//            catch
+//            {
+//                ResetSession();
+//            }
+//            finally
+//            {
+//                _readLock.Release();
+//            }
 
-                var endpoint = new ConfiguredEndpoint(
-                    null,
-                    endpointDescription,
-                    endpointConfiguration
-                );
+//            return data;
+//        }
 
-                _session = await Session.Create(
-                    _config,
-                    endpoint,
-                    false,
-                    "DRB_HMI_3D_SESSION",
-                    60000,
-                    null,
-                    null
-                );
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
-    }
-}
+//        private async Task<bool> EnsureConnectedAsync()
+//        {
+//            if (_session != null && _session.Connected)
+//            {
+//                return true;
+//            }
+
+//            var lockTaken = await _connectLock.WaitAsync(TimeSpan.FromSeconds(5));
+
+//            if (!lockTaken)
+//            {
+//                return false;
+//            }
+
+//            try
+//            {
+//                if (_session != null && _session.Connected)
+//                {
+//                    return true;
+//                }
+
+//                ResetSession();
+
+//                _config = new ApplicationConfiguration
+//                {
+//                    ApplicationName = "DRB_HMI_3D",
+//                    ApplicationUri = "urn:localhost:DRB_HMI_3D",
+//                    ApplicationType = ApplicationType.Client,
+
+//                    SecurityConfiguration = new SecurityConfiguration
+//                    {
+//                        ApplicationCertificate = new CertificateIdentifier
+//                        {
+//                            StoreType = "Directory",
+//                            StorePath = "OPCFoundation/CertificateStores/MachineDefault",
+//                            SubjectName = "DRB_HMI_3D"
+//                        },
+
+//                        TrustedPeerCertificates = new CertificateTrustList
+//                        {
+//                            StoreType = "Directory",
+//                            StorePath = "OPCFoundation/CertificateStores/UA Applications"
+//                        },
+
+//                        TrustedIssuerCertificates = new CertificateTrustList
+//                        {
+//                            StoreType = "Directory",
+//                            StorePath = "OPCFoundation/CertificateStores/UA Certificate Authorities"
+//                        },
+
+//                        RejectedCertificateStore = new CertificateTrustList
+//                        {
+//                            StoreType = "Directory",
+//                            StorePath = "OPCFoundation/CertificateStores/RejectedCertificates"
+//                        },
+
+//                        AutoAcceptUntrustedCertificates = true,
+//                        AddAppCertToTrustedStore = true
+//                    },
+
+//                    TransportConfigurations = new TransportConfigurationCollection(),
+
+//                    TransportQuotas = new TransportQuotas
+//                    {
+//                        OperationTimeout = 1500,
+//                        MaxStringLength = 1048576,
+//                        MaxByteStringLength = 1048576,
+//                        MaxArrayLength = 65535,
+//                        MaxMessageSize = 4194304,
+//                        MaxBufferSize = 65535,
+//                        ChannelLifetime = 600000,
+//                        SecurityTokenLifetime = 3600000
+//                    },
+
+//                    ClientConfiguration = new ClientConfiguration
+//                    {
+//                        DefaultSessionTimeout = 60000,
+//                        MinSubscriptionLifetime = 10000
+//                    }
+//                };
+
+//                await _config.Validate(ApplicationType.Client);
+
+//                _config.CertificateValidator.CertificateValidation += (sender, e) =>
+//                {
+//                    e.Accept = true;
+//                };
+
+//                var endpointDescription = CoreClientUtils.SelectEndpoint(
+//                    _config,
+//                    _endpointUrl,
+//                    false
+//                );
+
+//                var endpointConfiguration = EndpointConfiguration.Create(_config);
+
+//                var endpoint = new ConfiguredEndpoint(
+//                    null,
+//                    endpointDescription,
+//                    endpointConfiguration
+//                );
+
+//                _session = await Session.Create(
+//                    _config,
+//                    endpoint,
+//                    false,
+//                    "DRB_HMI_3D_SESSION",
+//                    60000,
+//                    null,
+//                    null
+//                );
+
+//                return _session != null && _session.Connected;
+//            }
+//            catch
+//            {
+//                ResetSession();
+//                return false;
+//            }
+//            finally
+//            {
+//                _connectLock.Release();
+//            }
+//        }
+
+//        private void ResetSession()
+//        {
+//            try
+//            {
+//                if (_session != null)
+//                {
+//                    _session.Close();
+//                    _session.Dispose();
+//                }
+//            }
+//            catch
+//            {
+//            }
+
+//            _session = null;
+//        }
+//    }
+//}

@@ -1,0 +1,203 @@
+﻿@{
+    ViewData["Title"] = "HMI Workshop Management";
+}
+
+<div class="hmi-body">
+    <div class="hmi-header">
+        <i class="fa-solid fa-industry"></i> WORKSHOP
+    </div>
+    <div class="hmi-content">
+        <div class="hmi-left">
+            <div class="hmi-table-header">
+                <div class="hmi-table-actions">
+                    <input type="text" id="hmiSearch" placeholder="Search workshop..." onkeyup="hmiFilter()" />
+                    <button onclick="hmiReload()" title="Reload"><i class="fa-solid fa-sync"></i></button>
+                    <button onclick="hmiAddNew()" title="Add New"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+            <table class="hmi-table" id="hmiTable">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>NAME</th>
+                        <th>CHANNEL</th>
+                        <th>DESCRIPTION</th>
+                        <th>ICON</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="hmi-right">
+            <div class="hmi-form">
+                <h4>BASIC INFORMATION</h4>
+                <input type="hidden" id="hmiFormId" />
+                <label>Name *</label>
+                <input type="text" id="hmiFormName" />
+                <label>Channel *</label>
+                <input type="text" id="hmiFormChannel" />
+                <label>Description</label>
+                <textarea id="hmiFormDescription"></textarea>
+                <label>Icon</label>
+                <input type="text" id="hmiFormIconInput"
+                       placeholder="fa-solid fa-industry"
+                       oninput="hmiPreviewIconInput(this.value)" />
+                <label>PREVIEW</label>
+                <div class="hmi-icon-preview" id="hmiIconPreview">
+                    <i class="fa-solid fa-sliders-h fa-2x"></i>
+                </div>
+                <div class="hmi-form-actions">
+                    <button onclick="hmiResetForm()">RESET</button>
+                    <button onclick="hmiSaveForm()">SAVE</button>
+                    <button onclick="hmiCancelForm()">CANCEL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let hmiWorkshops = [];
+
+    function hmiLoadData() {
+        fetch('/Setting/Workshop/GetAll')
+            .then(r => r.json())
+            .then(data => {
+                hmiWorkshops = data;
+                hmiRenderTable();
+            });
+    }
+
+    function hmiRenderTable(filtered = null) {
+        const tbody = document.querySelector("#hmiTable tbody");
+        tbody.innerHTML = "";
+        const list = filtered || hmiWorkshops;
+
+        list.forEach((w, index) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${w.name}</td>
+                <td>${w.channel}</td>
+                <td>${w.description || ''}</td>
+                <td><i class="${w.icon} fa-2x"></i></td>
+                <td>
+                    <button class="edit" onclick="hmiEdit(${w.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="delete" onclick="hmiDelete(${w.id})"><i class="fa-solid fa-trash"></i></button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function hmiFilter() {
+        const term = document.getElementById("hmiSearch").value.toLowerCase();
+        const filtered = hmiWorkshops.filter(w =>
+            w.name.toLowerCase().includes(term) ||
+            w.channel.toLowerCase().includes(term) ||
+            (w.description && w.description.toLowerCase().includes(term))
+        );
+        hmiRenderTable(filtered);
+    }
+
+    function hmiAddNew() {
+        hmiResetForm();
+        document.querySelector(".hmi-right").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function hmiEdit(id) {
+        const w = hmiWorkshops.find(x => x.id === id);
+        if (!w) return;
+
+        document.getElementById("hmiFormId").value = w.id;
+        document.getElementById("hmiFormName").value = w.name;
+        document.getElementById("hmiFormChannel").value = w.channel;
+        document.getElementById("hmiFormDescription").value = w.description || "";
+        document.getElementById("hmiFormIconInput").value = w.icon;
+        hmiPreviewIconInput(w.icon);
+
+        document.querySelector(".hmi-right").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function hmiDelete(id) {
+        if (!confirm("Delete this workshop?")) return;
+        fetch(`/Setting/Workshop/Delete/${id}`, { method: 'DELETE' })
+            .then(() => hmiLoadData());
+    }
+
+    function hmiSaveForm() {
+        const id = parseInt(document.getElementById("hmiFormId").value) || 0;
+        const name = document.getElementById("hmiFormName").value.trim();
+        const channel = document.getElementById("hmiFormChannel").value.trim();
+
+        if (!name || !channel) {
+            alert("Name and Channel are required!");
+            return;
+        }
+
+        const workshop = {
+            id: id,
+            name: name,
+            channel: channel,
+            description: document.getElementById("hmiFormDescription").value.trim(),
+            icon: document.getElementById("hmiFormIconInput").value.trim()
+        };
+
+        const isEdit = id > 0;
+        const url = isEdit ? '/Setting/Workshop/Update' : '/Setting/Workshop/Create';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(workshop)
+        })
+        .then(r => {
+            if (!r.ok) throw new Error("Save failed");
+            return r.json();
+        })
+        .then(() => {
+            hmiLoadData();
+            if (isEdit) {
+                alert("✅ Workshop updated successfully!");
+            } else {
+                alert("✅ Workshop created successfully!");
+                hmiResetForm();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("❌ Save failed! Please check console.");
+        });
+    }
+
+    function hmiResetForm() {
+        document.getElementById("hmiFormId").value = "";
+        document.getElementById("hmiFormName").value = "";
+        document.getElementById("hmiFormChannel").value = "";
+        document.getElementById("hmiFormDescription").value = "";
+        document.getElementById("hmiFormIconInput").value = "";
+        document.getElementById("hmiIconPreview").innerHTML = `<i class="fa-solid fa-sliders-h fa-2x"></i>`;
+    }
+
+    function hmiCancelForm() {
+        hmiResetForm();
+    }
+
+    function hmiPreviewIconInput(value) {
+        const preview = document.getElementById("hmiIconPreview");
+        const trimmed = value.trim();
+        if (trimmed) {
+            preview.innerHTML = `<i class="${trimmed} fa-2x"></i>`;
+        } else {
+            preview.innerHTML = `<i class="fa-solid fa-sliders-h fa-2x"></i>`;
+        }
+    }
+
+    function hmiReload() {
+        hmiLoadData();
+    }
+
+    window.onload = hmiLoadData;
+</script>

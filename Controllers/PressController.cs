@@ -1,67 +1,61 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DRB_HMI_3D.Services;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using DRB_HMI_3D.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DRB_HMI_3D.Controllers
 {
     public class PressController : Controller
     {
-        private readonly KepwareService _kepwareService;
+        private readonly AppDbContext _context;
 
-        public PressController(KepwareService kepwareService)
+        public PressController(AppDbContext context)
         {
-            _kepwareService = kepwareService;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int? groupId)
         {
-            return View();
+            ViewBag.GroupId = groupId;
+
+            var workshopId = await GetWorkshopIdAsync(groupId);
+            ViewBag.WorkshopId = workshopId;
+
+            var pressItems = await _context.PressItems
+                .AsNoTracking()
+                .Where(x => x.Active && (groupId == null || x.PressGroupId == groupId.Value))
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+
+            return View(pressItems);
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllMachines()
+        public async Task<IActionResult> DebugMachines(int? groupId)
         {
             try
             {
-                var data = new List<object>();
-
-                for (int i = 1; i <= 6; i++)
-                {
-                    string ctl = $"CTL{i}";
-
-                    var tagList = new List<string>
+                var data = await _context.PressItems
+                    .AsNoTracking()
+                    .Where(x => x.Active && (groupId == null || x.PressGroupId == groupId.Value))
+                    .OrderBy(x => x.Id)
+                    .Select(x => new
                     {
-                        $"ns=2;s=CTL.{ctl}.START/STOP",
-                        $"ns=2;s=CTL.{ctl}.THOI GIAN LUU HOA",
-                        $"ns=2;s=CTL.{ctl}.NHIET DO MAM TREN",
-                        $"ns=2;s=CTL.{ctl}.NHIET DO MAM GIUA",
-                        $"ns=2;s=CTL.{ctl}.NHIET DO MAM DUOI",
-                        $"ns=2;s=CTL.{ctl}.AP LUC"
-                    };
-
-                    var values = await _kepwareService.ReadMultipleTagsAsync(tagList);
-
-                    // Chuyển kiểu an toàn
-                    int startStop = values[tagList[0]] != null ? Convert.ToInt32(values[tagList[0]]) : 0;
-                    int thoiGianLuuHoa = values[tagList[1]] != null ? Convert.ToInt32(values[tagList[1]]) : 0;
-                    double nhietDoMamTren = values[tagList[2]] != null ? Convert.ToDouble(values[tagList[2]]) / 10 : 0;
-                    double nhietDoMamGiua = values[tagList[3]] != null ? Convert.ToDouble(values[tagList[3]]) / 10 : 0;
-                    double nhietDoMamDuoi = values[tagList[4]] != null ? Convert.ToDouble(values[tagList[4]]) / 10 : 0;
-                    double apLuc = values[tagList[5]] != null ? Convert.ToDouble(values[tagList[5]]) / 10 : 0;
-
-                    data.Add(new
-                    {
-                        machine = ctl,
-                        startStop = startStop,
-                        thoiGianLuuHoa = thoiGianLuuHoa,
-                        nhietDoMamTren = nhietDoMamTren,
-                        nhietDoMamGiua = nhietDoMamGiua,
-                        nhietDoMamDuoi = nhietDoMamDuoi,
-                        apLuc = apLuc
-                    });
-                }
+                        x.Id,
+                        x.Name,
+                        x.PressGroupId,
+                        x.Active,
+                        Tags = _context.PressTags
+                            .AsNoTracking()
+                            .Where(t => t.PressItemId == x.Id)
+                            .Select(t => new
+                            {
+                                t.Id,
+                                t.Name,
+                                t.KepwareAddress
+                            })
+                            .ToList()
+                    })
+                    .ToListAsync();
 
                 return Json(data);
             }
@@ -69,10 +63,34 @@ namespace DRB_HMI_3D.Controllers
             {
                 return StatusCode(500, new
                 {
-                    error = "Lỗi kết nối Kepware",
-                    detail = ex.Message
+                    error = "Lỗi server",
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
+        }
+
+        private async Task<int> GetWorkshopIdAsync(int? groupId)
+        {
+            if (groupId.HasValue)
+            {
+                var workshopId = await _context.PressGroups
+                    .AsNoTracking()
+                    .Where(x => x.Id == groupId.Value)
+                    .Select(x => x.WorkshopId)
+                    .FirstOrDefaultAsync();
+
+                if (workshopId > 0)
+                {
+                    return workshopId;
+                }
+            }
+
+            return await _context.Workshops
+                .AsNoTracking()
+                .OrderBy(x => x.Id)
+                .Select(x => x.Id)
+                .FirstOrDefaultAsync();
         }
     }
 }

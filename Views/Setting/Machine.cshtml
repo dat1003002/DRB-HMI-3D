@@ -1,0 +1,338 @@
+﻿@{
+    ViewData["Title"] = "HMI Press Group Management";
+}
+
+<div class="hmi-body">
+    <div class="hmi-header">
+        <i class="fa-solid fa-building"></i> PRESS GROUP
+    </div>
+
+    <div class="hmi-content">
+        <div class="hmi-left">
+            <div class="hmi-table-header">
+                <div class="hmi-table-actions">
+                    <input type="text" id="pressGroupSearch" placeholder="Search Press Group..." onkeyup="pressGroupFilter()" />
+                    <button type="button" onclick="pressGroupReload()" title="Reload"><i class="fa-solid fa-sync"></i></button>
+                    <button type="button" onclick="pressGroupAddNew()" title="Add New"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <table class="hmi-table" id="pressGroupTable">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Label</th>
+                        <th>Workshop</th>
+                        <th>Start Index</th>
+                        <th>End Index</th>
+                        <th>Icon</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="hmi-right">
+            <div class="hmi-form">
+                <h4>BASIC INFORMATION</h4>
+
+                <input type="hidden" id="pressGroupFormId" />
+
+                <label>Label <span class="required">*</span></label>
+                <input type="text" id="pressGroupFormLabel" maxlength="50" />
+
+                <label>Workshop <span class="required">*</span></label>
+                <select id="pressGroupFormWorkshopId"></select>
+
+                <label>Start Index <span class="required">*</span></label>
+                <input type="number" id="pressGroupFormStartIndex" min="0" />
+
+                <label>End Index <span class="required">*</span></label>
+                <input type="number" id="pressGroupFormEndIndex" min="0" />
+
+                <label>Icon</label>
+                <input type="text" id="pressGroupFormIcon" placeholder="fa-solid fa-cogs" oninput="pressGroupPreviewIcon(this.value)" />
+
+                <label>PREVIEW</label>
+                <div class="hmi-icon-preview" id="pressGroupIconPreview">
+                    <i class="fa-solid fa-sliders-h fa-2x"></i>
+                </div>
+
+                <div class="hmi-form-actions">
+                    <button type="button" onclick="pressGroupResetForm()">RESET</button>
+                    <button type="button" onclick="pressGroupSaveForm()" class="btn-save">SAVE</button>
+                    <button type="button" onclick="pressGroupCancelForm()">CANCEL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pressGroups = [];
+    let workshops = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        pressGroupLoadData();
+    });
+
+    async function pressGroupLoadData() {
+        try {
+            const groupsUrl = "/Setting/Machine/GetAll?workshopId=0";
+            const workshopsUrl = "/Setting/Workshop/GetAll";
+
+            const [groupsRes, workshopsRes] = await Promise.all([
+                fetch(groupsUrl),
+                fetch(workshopsUrl)
+            ]);
+
+            if (!groupsRes.ok) {
+                const text = await groupsRes.text();
+                console.error(text);
+                alert("Không tải được danh sách Press Group");
+                return;
+            }
+
+            if (!workshopsRes.ok) {
+                const text = await workshopsRes.text();
+                console.error(text);
+                alert("Không tải được danh sách Workshop");
+                return;
+            }
+
+            pressGroups = await groupsRes.json();
+            workshops = await workshopsRes.json();
+
+            pressGroupRenderWorkshopSelect();
+            pressGroupRenderTable();
+        } catch (err) {
+            console.error(err);
+            alert("Không tải được dữ liệu");
+        }
+    }
+
+    function pressGroupRenderWorkshopSelect() {
+        const sel = document.getElementById("pressGroupFormWorkshopId");
+
+        sel.innerHTML = '<option value="">-- Select Workshop --</option>' +
+            workshops.map(w => `<option value="${w.id}">${w.name}</option>`).join("");
+    }
+
+    function pressGroupRenderTable(filtered = null) {
+        const tbody = document.querySelector("#pressGroupTable tbody");
+        tbody.innerHTML = "";
+
+        const list = filtered || pressGroups;
+
+        list.forEach((p, index) => {
+            const workshopName = workshops.find(w => Number(w.id) === Number(p.workshopId))?.name || "N/A";
+            const iconClass = p.icon && p.icon.trim() !== "" ? p.icon : "fa-solid fa-sliders-h";
+
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${p.label || ""}</td>
+                <td>${workshopName}</td>
+                <td>${p.startIndex}</td>
+                <td>${p.endIndex}</td>
+                <td><i class="${iconClass} fa-2x"></i></td>
+                <td>
+                    <button type="button" class="edit" onclick="pressGroupEdit(${p.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="delete" onclick="pressGroupDelete(${p.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function pressGroupFilter() {
+        const term = document.getElementById("pressGroupSearch").value.toLowerCase().trim();
+
+        const filtered = pressGroups.filter(p => {
+            const label = (p.label || "").toLowerCase();
+            const workshopName = (workshops.find(w => Number(w.id) === Number(p.workshopId))?.name || "").toLowerCase();
+
+            return label.includes(term) || workshopName.includes(term);
+        });
+
+        pressGroupRenderTable(filtered);
+    }
+
+    function pressGroupAddNew() {
+        pressGroupResetForm();
+        document.querySelector(".hmi-right").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function pressGroupEdit(id) {
+        const p = pressGroups.find(x => Number(x.id) === Number(id));
+
+        if (!p) {
+            alert("Không tìm thấy Press Group");
+            return;
+        }
+
+        document.getElementById("pressGroupFormId").value = p.id;
+        document.getElementById("pressGroupFormLabel").value = p.label || "";
+        document.getElementById("pressGroupFormWorkshopId").value = p.workshopId;
+        document.getElementById("pressGroupFormStartIndex").value = p.startIndex;
+        document.getElementById("pressGroupFormEndIndex").value = p.endIndex;
+        document.getElementById("pressGroupFormIcon").value = p.icon || "";
+
+        pressGroupPreviewIcon(p.icon || "");
+        document.querySelector(".hmi-right").scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function pressGroupDelete(id) {
+        if (!confirm("Bạn có chắc muốn xóa Press Group này?")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/Setting/Machine/Delete/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error(text);
+                alert("Xóa thất bại");
+                return;
+            }
+
+            alert("Xóa thành công");
+            await pressGroupLoadData();
+        } catch (err) {
+            console.error(err);
+            alert("Có lỗi xảy ra khi xóa");
+        }
+    }
+
+    async function pressGroupSaveForm() {
+        const id = parseInt(document.getElementById("pressGroupFormId").value) || 0;
+        const label = document.getElementById("pressGroupFormLabel").value.trim();
+        const workshopId = parseInt(document.getElementById("pressGroupFormWorkshopId").value);
+        const startIndex = parseInt(document.getElementById("pressGroupFormStartIndex").value);
+        const endIndex = parseInt(document.getElementById("pressGroupFormEndIndex").value);
+        const icon = document.getElementById("pressGroupFormIcon").value.trim();
+
+        if (!label) {
+            alert("Vui lòng nhập Label");
+            return;
+        }
+
+        if (!workshopId || isNaN(workshopId)) {
+            alert("Vui lòng chọn Workshop");
+            return;
+        }
+
+        if (isNaN(startIndex)) {
+            alert("Vui lòng nhập Start Index");
+            return;
+        }
+
+        if (isNaN(endIndex)) {
+            alert("Vui lòng nhập End Index");
+            return;
+        }
+
+        if (startIndex < 0 || endIndex < 0) {
+            alert("Start Index và End Index không được nhỏ hơn 0");
+            return;
+        }
+
+        if (startIndex >= endIndex) {
+            alert("Start Index phải nhỏ hơn End Index");
+            return;
+        }
+
+        const pressGroup = {
+            id: id,
+            workshopId: workshopId,
+            label: label,
+            startIndex: startIndex,
+            endIndex: endIndex,
+            icon: icon
+        };
+
+        const isEdit = id > 0;
+        const url = isEdit ? "/Setting/Machine/Update" : "/Setting/Machine/Create";
+        const method = isEdit ? "PUT" : "POST";
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pressGroup)
+            });
+
+            if (!res.ok) {
+                let message = "Lưu thất bại";
+
+                try {
+                    const errorData = await res.json();
+
+                    if (errorData.message) {
+                        message = errorData.message;
+                    }
+
+                    if (errorData.errors) {
+                        message += "\n";
+
+                        for (const key in errorData.errors) {
+                            message += `\n${key}: ${errorData.errors[key].join(", ")}`;
+                        }
+                    }
+                } catch {
+                    const text = await res.text();
+                    console.error(text);
+                }
+
+                alert(message);
+                return;
+            }
+
+            alert(isEdit ? "Cập nhật thành công" : "Thêm mới thành công");
+
+            await pressGroupLoadData();
+
+            if (!isEdit) {
+                pressGroupResetForm();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Có lỗi xảy ra khi lưu");
+        }
+    }
+
+    function pressGroupResetForm() {
+        document.getElementById("pressGroupFormId").value = "";
+        document.getElementById("pressGroupFormLabel").value = "";
+        document.getElementById("pressGroupFormWorkshopId").selectedIndex = 0;
+        document.getElementById("pressGroupFormStartIndex").value = "";
+        document.getElementById("pressGroupFormEndIndex").value = "";
+        document.getElementById("pressGroupFormIcon").value = "";
+
+        pressGroupPreviewIcon("");
+    }
+
+    function pressGroupCancelForm() {
+        pressGroupResetForm();
+    }
+
+    function pressGroupPreviewIcon(value) {
+        const preview = document.getElementById("pressGroupIconPreview");
+        const trimmed = value ? value.trim() : "";
+        const iconClass = trimmed !== "" ? trimmed : "fa-solid fa-sliders-h";
+
+        preview.innerHTML = `<i class="${iconClass} fa-2x"></i>`;
+    }
+
+    function pressGroupReload() {
+        pressGroupLoadData();
+    }
+</script>

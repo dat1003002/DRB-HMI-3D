@@ -1,22 +1,34 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>DRB_HMI_3D</RootNamespace>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="FontAwesome" Version="4.7.0" />
-		<PackageReference Include="Microsoft.AspNet.Mvc" Version="5.3.0" />
-		<PackageReference Include="Microsoft.AspNet.SignalR" Version="2.4.3" />
-		<PackageReference Include="Microsoft.AspNet.SignalR.Core" Version="2.4.3" />
-		<PackageReference Include="Microsoft.AspNet.Web.Optimization" Version="1.1.3" />
-		<PackageReference Include="Microsoft.Owin.Hosting" Version="4.2.3" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.8" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.8" />
+		<PackageReference Include="Microsoft.Owin.Hosting" Version="4.2.3">
+			<NoWarn>NU1701</NoWarn>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Owin" Version="4.2.3">
+			<NoWarn>NU1701</NoWarn>
+		</PackageReference>
+		<PackageReference Include="Owin" Version="1.0.0">
+			<NoWarn>NU1701</NoWarn>
+		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.378.134" />
 	</ItemGroup>
-
 	<Target Name="TailwindCSS" BeforeTargets="Build">
 		<Exec Command="npm run build:css" />
 	</Target>

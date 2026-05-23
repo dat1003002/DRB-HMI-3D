@@ -3,41 +3,43 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - DRB_HMI_3D</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../lib/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/header.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/nav.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/press.css" asp-append-version="true" />
 
+    <title>@ViewData["Title"] - DRB_HMI_3D</title>
+
+    <link rel="stylesheet" href="@Url.Content("~/css/tailwind-output.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/lib/fontawesome/css/all.min.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/lib/bootstrap/dist/css/bootstrap.min.css")" />
+
+    <link rel="stylesheet" href="@Url.Content("~/css/site.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/home.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/header.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/nav.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/press.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/setting.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/press-item-tag.css")" />
+
+    <script src="@Url.Content("~/lib/microsoft/signalr/dist/browser/signalr.min.js")"></script>
 </head>
+
 <body>
     <div class="app-layout">
-
-        @Html.Partial("_Header")
+        @await Html.PartialAsync("_Header")
 
         <div class="app-shell">
-
-            @Html.Partial("_Sidebar")
+            @await Html.PartialAsync("_Sidebar")
 
             <div id="mainContent" class="app-main">
-
                 <div class="app-content custom-scroll">
-
                     <main role="main" class="app-render" id="renderBodyContent">
                         @RenderBody()
                     </main>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
+    <script src="@Url.Content("~/lib/bootstrap/dist/js/bootstrap.bundle.min.js")"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

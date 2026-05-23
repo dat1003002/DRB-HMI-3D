@@ -1,0 +1,215 @@
+﻿/* General body */
+.hmi-body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0b111f;
+    color: #e0f2fe;
+    padding: 20px;
+}
+
+/* Header */
+.hmi-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Content layout */
+.hmi-content {
+    display: flex;
+    gap: 20px;
+}
+
+/* Left panel (table) */
+.hmi-left {
+    flex: 2;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Right panel (form) */
+.hmi-right {
+    flex: 1;
+}
+
+/* Table header */
+.hmi-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+    .hmi-table-header input {
+        padding: 5px 10px;
+        border-radius: 4px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e0f2fe;
+    }
+
+/* Table actions buttons */
+.hmi-table-actions button {
+    margin-left: 5px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+/* Table styling */
+.hmi-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e2937;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+    .hmi-table th, .hmi-table td {
+        padding: 10px;
+        border-bottom: 1px solid #334155;
+        text-align: left;
+    }
+
+    .hmi-table th {
+        background: #334155;
+    }
+
+    .hmi-table tr:hover {
+        background: #334155;
+    }
+
+    /* Table buttons */
+    .hmi-table button.edit {
+        background: #3b82f6;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+
+    .hmi-table button.delete {
+        background: #ef4444;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+
+    /* Icon in table */
+    .hmi-table td i {
+        display: inline-block;
+        width: 24px;
+        text-align: center;
+    }
+
+/* Form styling */
+.hmi-form {
+    background: #1e2937;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px #0ea5e9;
+}
+
+    .hmi-form h3, .hmi-form h4 {
+        color: #38bdf8;
+        margin-bottom: 8px;
+    }
+
+    .hmi-form label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .hmi-form input,
+    .hmi-form textarea,
+    .hmi-form select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 4px;
+        border-radius: 4px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e0f2fe;
+    }
+
+    .hmi-form textarea {
+        resize: none;
+        height: 60px;
+    }
+
+    /* Select additional styling */
+    .hmi-form select {
+        cursor: pointer;
+    }
+
+/* Icon preview box */
+.hmi-icon-preview {
+    background: #0f172a;
+    padding: 20px;
+    text-align: center;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #334155;
+}
+
+/* Form action buttons */
+.hmi-form-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+    .hmi-form-actions button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .hmi-form-actions button:nth-child(1) {
+            background: #334155;
+            color: #e0f2fe;
+        }
+
+        .hmi-form-actions button:nth-child(2) {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .hmi-form-actions button:nth-child(3) {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Hover effect for form buttons */
+        .hmi-form-actions button:hover {
+            opacity: 0.85;
+        }
+
+/* Pagination (optional) */
+.hmi-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.hmi-page-nav button,
+.hmi-page-nav select {
+    margin-left: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: none;
+    background: #334155;
+    color: white;
+    cursor: pointer;
+}

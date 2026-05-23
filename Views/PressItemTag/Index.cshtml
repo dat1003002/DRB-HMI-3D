@@ -1,0 +1,627 @@
+﻿@model List<DRB_HMI_3D.Models.PressItem>
+
+@{
+    ViewData["Title"] = "Press Item & Tag";
+
+    var pressGroups = ViewBag.PressGroups as List<DRB_HMI_3D.Models.PressGroup> ?? new List<DRB_HMI_3D.Models.PressGroup>();
+
+    string GetGroupText(object group)
+    {
+        if (group == null)
+            return "";
+
+        var type = group.GetType();
+
+        foreach (var propName in new[] { "Name", "Label", "Title", "GroupName" })
+        {
+            var prop = type.GetProperty(propName);
+            var value = prop?.GetValue(group)?.ToString();
+
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        var idProp = type.GetProperty("Id");
+        return idProp?.GetValue(group)?.ToString() ?? "";
+    }
+
+    string GetItemGroupText(DRB_HMI_3D.Models.PressItem item)
+    {
+        if (item.PressGroup != null)
+            return GetGroupText(item.PressGroup);
+
+        var group = pressGroups.FirstOrDefault(x => x.Id == item.PressGroupId);
+        return group != null ? GetGroupText(group) : item.PressGroupId.ToString();
+    }
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            };
+
+    var itemsJson = System.Text.Json.JsonSerializer.Serialize(Model.Select(x => new
+    {
+        id = x.Id,
+        pressGroupId = x.PressGroupId,
+        pressGroupName = GetItemGroupText(x),
+        name = x.Name,
+        kepwareTag = x.KepwareTag,
+        active = x.Active,
+        tags = (x.Tags ?? new List<DRB_HMI_3D.Models.PressTag>())
+            .OrderBy(t => t.Id)
+            .Select(t => new
+            {
+                id = t.Id,
+                pressItemId = t.PressItemId,
+                name = t.Name,
+                value = t.Value,
+                kepwareAddress = t.KepwareAddress
+            })
+    }), jsonOptions);
+}
+
+<link rel="stylesheet" href="~/css/press-item-tag.css" asp-append-version="true" />
+
+@Html.AntiForgeryToken()
+
+<div class="pitm-page">
+    <div class="pitm-left-panel">
+        <div class="pitm-toolbar">
+            <div class="pitm-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="pitmSearchInput" type="text" placeholder="Search Press Group, Item or Tag..." />
+            </div>
+
+            <button class="pitm-icon-btn" id="pitmRefreshBtn" type="button">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+
+            <button class="pitm-icon-btn" id="pitmAddNewBtn" type="button">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+
+            <button class="pitm-icon-btn" id="pitmExportBtn" type="button">
+                <i class="fa-solid fa-download"></i>
+            </button>
+        </div>
+
+        <div class="pitm-table-card">
+            <table class="pitm-main-table" id="pitmMainTable">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>STT</th>
+                        <th>Press Group</th>
+                        <th>Press Item Name</th>
+                        <th>Kepware Tag</th>
+                        <th>Active</th>
+                        <th>Tags</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        var stt = 1;
+
+                        foreach (var item in Model)
+                        {
+                            var tags = item.Tags ?? new List<DRB_HMI_3D.Models.PressTag>();
+
+                            <tr class="pitm-row" data-pitm-row-id="@item.Id">
+                                <td>
+                                    <button class="pitm-expand-btn" type="button">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </button>
+                                </td>
+                                <td>@stt</td>
+                                <td>@GetItemGroupText(item)</td>
+                                <td>@item.Name</td>
+                                <td>@item.KepwareTag</td>
+                                <td>
+                                    @if (item.Active)
+                                    {
+                                        <span class="pitm-status pitm-status-on">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pitm-status pitm-status-off">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="pitm-tag-count">@tags.Count Tags</span>
+                                </td>
+                                <td>
+                                    <div class="pitm-action-group">
+                                        <button class="pitm-action-btn pitm-edit-btn" type="button" data-pitm-edit="@item.Id">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button class="pitm-action-btn pitm-delete-btn" type="button" data-pitm-delete="@item.Id">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                        <button class="pitm-action-btn pitm-more-btn" type="button">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="pitm-detail-row">
+                                <td colspan="8">
+                                    <div class="pitm-detail-box">
+                                        <table class="pitm-detail-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tag Name</th>
+                                                    <th>Value</th>
+                                                    <th>Kepware Address</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (tags.Any())
+                                                {
+                                                    foreach (var tag in tags.OrderBy(x => x.Id))
+                                                    {
+                                                        var tagValueText = tag.Value?.ToString() ?? "";
+
+                                                        <tr>
+                                                            <td>@tag.Name</td>
+                                                            <td>
+                                                                @if (tagValueText == "1")
+                                                                {
+                                                                    <span class="pitm-value pitm-value-green">@tagValueText</span>
+                                                                }
+                                                                else if (tagValueText == "0")
+                                                                {
+                                                                    <span class="pitm-value pitm-value-red">@tagValueText</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="pitm-value pitm-value-blue">@tagValueText</span>
+                                                                }
+                                                            </td>
+                                                            <td>@tag.KepwareAddress</td>
+                                                            <td>
+                                                                <button class="pitm-small-btn pitm-edit-btn" type="button" data-pitm-edit="@item.Id">
+                                                                    <i class="fa-solid fa-pen"></i>
+                                                                </button>
+                                                                <button class="pitm-small-btn pitm-delete-btn" type="button" data-pitm-delete-tag="@tag.Id">
+                                                                    <i class="fa-solid fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <tr>
+                                                        <td colspan="4">Chưa có tag</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            stt++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8">Chưa có dữ liệu Press Item</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="pitm-table-footer">
+                <span>Hiển thị @Model.Count mục</span>
+
+                <div class="pitm-pagination">
+                    <button type="button">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button class="pitm-page-active" type="button">1</button>
+                    <button type="button">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pitm-right-panel">
+        <div class="pitm-form-card">
+            <div class="pitm-section-title">BASIC INFORMATION</div>
+
+            <input type="hidden" id="pitmItemId" value="0" />
+
+            <div class="pitm-form-group">
+                <label>Press Group <span>*</span></label>
+                <select id="pitmPressGroupId">
+                    <option value="">Chọn Press Group</option>
+                    @foreach (var group in pressGroups)
+                    {
+                        <option value="@group.Id">@GetGroupText(group)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="pitm-form-group">
+                <label>Press Item Name <span>*</span></label>
+                <input id="pitmItemName" type="text" />
+            </div>
+
+            <div class="pitm-form-group">
+                <label>Kepware Tag <span>*</span></label>
+                <input id="pitmKepwareTag" type="text" />
+            </div>
+
+            <div class="pitm-form-group">
+                <label>Active</label>
+                <div class="pitm-switch-wrap">
+                    <label class="pitm-switch">
+                        <input id="pitmActive" type="checkbox" checked />
+                        <span></span>
+                    </label>
+                    <b id="pitmActiveText">Active</b>
+                </div>
+            </div>
+
+            <div class="pitm-line"></div>
+
+            <div class="pitm-tag-header">
+                <div class="pitm-section-title">TAG DETAILS</div>
+                <button class="pitm-add-tag-btn" id="pitmAddTagBtn" type="button">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Tag
+                </button>
+            </div>
+
+            <div class="pitm-tag-editor">
+                <div class="pitm-tag-editor-head">
+                    <span>Tag Name</span>
+                    <span>Value</span>
+                    <span>Kepware Address</span>
+                    <span>Action</span>
+                </div>
+
+                <div id="pitmTagEditorBody"></div>
+            </div>
+
+            <div class="pitm-form-actions">
+                <button class="pitm-reset-btn" id="pitmResetBtn" type="button">RESET</button>
+                <button class="pitm-save-btn" id="pitmSaveBtn" type="button">SAVE</button>
+                <button class="pitm-cancel-btn" id="pitmCancelBtn" type="button">CANCEL</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.pitmItems = @Html.Raw(itemsJson);
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.getElementById("pitmMainTable");
+        const itemId = document.getElementById("pitmItemId");
+        const pressGroupId = document.getElementById("pitmPressGroupId");
+        const itemName = document.getElementById("pitmItemName");
+        const kepwareTag = document.getElementById("pitmKepwareTag");
+        const active = document.getElementById("pitmActive");
+        const activeText = document.getElementById("pitmActiveText");
+        const tagBody = document.getElementById("pitmTagEditorBody");
+        const tokenInput = document.querySelector("input[name='__RequestVerificationToken']");
+
+        function getToken() {
+            return tokenInput ? tokenInput.value : "";
+        }
+
+        function setActiveText() {
+            activeText.textContent = active.checked ? "Active" : "Inactive";
+        }
+
+        function getValueClass(value) {
+            if (Number(value) === 1) return "pitm-input-green";
+            if (Number(value) === 0) return "pitm-input-red";
+            return "pitm-input-blue";
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function createTagRow(tag) {
+            const row = document.createElement("div");
+            row.className = "pitm-tag-editor-row";
+            row.dataset.tagId = tag && tag.id ? tag.id : 0;
+
+            const tagName = tag && tag.name ? tag.name : "";
+            const tagValue = tag && tag.value !== undefined && tag.value !== null ? tag.value : "0";
+            const tagAddress = tag && tag.kepwareAddress ? tag.kepwareAddress : "";
+
+            row.innerHTML = `
+                <input type="text" class="pitm-tag-name-input" value="${escapeHtml(tagName)}" />
+                <input type="text" class="pitm-tag-value-input ${getValueClass(tagValue)}" value="${escapeHtml(tagValue)}" />
+                <input type="text" class="pitm-tag-address-input" value="${escapeHtml(tagAddress)}" />
+                <button class="pitm-delete-btn pitm-remove-tag-row" type="button">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            `;
+
+            tagBody.appendChild(row);
+        }
+
+        function clearForm() {
+            itemId.value = 0;
+            pressGroupId.value = "";
+            itemName.value = "";
+            kepwareTag.value = "";
+            active.checked = true;
+            tagBody.innerHTML = "";
+            setActiveText();
+            createTagRow({ id: 0, name: "", value: "0", kepwareAddress: "" });
+        }
+
+        function fillForm(id) {
+            const item = window.pitmItems.find(x => Number(x.id) === Number(id));
+
+            if (!item) return;
+
+            itemId.value = item.id;
+            pressGroupId.value = item.pressGroupId;
+            itemName.value = item.name;
+            kepwareTag.value = item.kepwareTag;
+            active.checked = item.active;
+            tagBody.innerHTML = "";
+
+            if (item.tags && item.tags.length > 0) {
+                item.tags.forEach(function (tag) {
+                    createTagRow(tag);
+                });
+            } else {
+                createTagRow({ id: 0, name: "", value: "0", kepwareAddress: "" });
+            }
+
+            setActiveText();
+        }
+
+        function collectPayload() {
+            const tags = Array.from(document.querySelectorAll(".pitm-tag-editor-row")).map(function (row) {
+                return {
+                    id: Number(row.dataset.tagId || 0),
+                    name: row.querySelector(".pitm-tag-name-input").value.trim(),
+                    value: row.querySelector(".pitm-tag-value-input").value.trim(),
+                    kepwareAddress: row.querySelector(".pitm-tag-address-input").value.trim()
+                };
+            });
+
+            return {
+                id: Number(itemId.value || 0),
+                pressGroupId: Number(pressGroupId.value || 0),
+                name: itemName.value.trim(),
+                kepwareTag: kepwareTag.value.trim(),
+                active: active.checked,
+                tags: tags
+            };
+        }
+
+        async function saveData() {
+            const payload = collectPayload();
+
+            const response = await fetch("@Url.Action("Save", "PressItemTag")", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": getToken()
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                alert(result.message || "Lưu dữ liệu thất bại.");
+                return;
+            }
+
+            clearForm();
+            location.reload();
+        }
+
+        async function deleteItem(id) {
+            if (!confirm("Bạn có chắc muốn xóa Press Item này không?")) return;
+
+            const response = await fetch("@Url.Action("Delete", "PressItemTag")?id=" + encodeURIComponent(id), {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": getToken()
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                alert(result.message || "Xóa dữ liệu thất bại.");
+                return;
+            }
+
+            clearForm();
+            location.reload();
+        }
+
+        async function deleteTag(id) {
+            if (!confirm("Bạn có chắc muốn xóa Press Tag này không?")) return;
+
+            const response = await fetch("@Url.Action("DeleteTag", "PressItemTag")?id=" + encodeURIComponent(id), {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": getToken()
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                alert(result.message || "Xóa tag thất bại.");
+                return;
+            }
+
+            clearForm();
+            location.reload();
+        }
+
+        function exportCsv() {
+            const rows = [];
+            rows.push(["Press Group", "Press Item Name", "Kepware Tag", "Active", "Tag Name", "Value", "Kepware Address"]);
+
+            window.pitmItems.forEach(function (item) {
+                if (item.tags && item.tags.length > 0) {
+                    item.tags.forEach(function (tag) {
+                        rows.push([
+                            item.pressGroupName,
+                            item.name,
+                            item.kepwareTag,
+                            item.active ? "Active" : "Inactive",
+                            tag.name,
+                            tag.value,
+                            tag.kepwareAddress
+                        ]);
+                    });
+                } else {
+                    rows.push([
+                        item.pressGroupName,
+                        item.name,
+                        item.kepwareTag,
+                        item.active ? "Active" : "Inactive",
+                        "",
+                        "",
+                        ""
+                    ]);
+                }
+            });
+
+            const csv = rows.map(x => x.map(v => `"${String(v ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = "press-item-tags.csv";
+            link.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        if (table) {
+            table.addEventListener("click", function (e) {
+                const expandButton = e.target.closest(".pitm-expand-btn");
+
+                if (expandButton) {
+                    const mainRow = expandButton.closest(".pitm-row");
+                    const detailRow = mainRow ? mainRow.nextElementSibling : null;
+
+                    if (!detailRow || !detailRow.classList.contains("pitm-detail-row")) return;
+
+                    const isOpen = detailRow.classList.toggle("pitm-show");
+                    const icon = expandButton.querySelector("i");
+
+                    expandButton.classList.toggle("pitm-open", isOpen);
+                    mainRow.classList.toggle("pitm-row-active", isOpen);
+
+                    if (icon) {
+                        icon.classList.toggle("fa-chevron-down", isOpen);
+                        icon.classList.toggle("fa-chevron-right", !isOpen);
+                    }
+
+                    return;
+                }
+
+                const editButton = e.target.closest("[data-pitm-edit]");
+
+                if (editButton) {
+                    fillForm(editButton.dataset.pitmEdit);
+                    return;
+                }
+
+                const deleteButton = e.target.closest("[data-pitm-delete]");
+
+                if (deleteButton) {
+                    deleteItem(deleteButton.dataset.pitmDelete);
+                    return;
+                }
+
+                const deleteTagButton = e.target.closest("[data-pitm-delete-tag]");
+
+                if (deleteTagButton) {
+                    deleteTag(deleteTagButton.dataset.pitmDeleteTag);
+                }
+            });
+        }
+
+        document.getElementById("pitmAddTagBtn").addEventListener("click", function () {
+            createTagRow({ id: 0, name: "", value: "0", kepwareAddress: "" });
+        });
+
+        tagBody.addEventListener("click", function (e) {
+            const button = e.target.closest(".pitm-remove-tag-row");
+
+            if (!button) return;
+
+            const row = button.closest(".pitm-tag-editor-row");
+
+            if (row) row.remove();
+
+            if (document.querySelectorAll(".pitm-tag-editor-row").length === 0) {
+                createTagRow({ id: 0, name: "", value: "0", kepwareAddress: "" });
+            }
+        });
+
+        tagBody.addEventListener("input", function (e) {
+            const input = e.target.closest(".pitm-tag-value-input");
+
+            if (!input) return;
+
+            input.classList.remove("pitm-input-green", "pitm-input-red", "pitm-input-blue");
+            input.classList.add(getValueClass(input.value));
+        });
+
+        document.getElementById("pitmSaveBtn").addEventListener("click", saveData);
+        document.getElementById("pitmResetBtn").addEventListener("click", clearForm);
+        document.getElementById("pitmCancelBtn").addEventListener("click", clearForm);
+        document.getElementById("pitmAddNewBtn").addEventListener("click", clearForm);
+        document.getElementById("pitmRefreshBtn").addEventListener("click", function () {
+            location.reload();
+        });
+        document.getElementById("pitmExportBtn").addEventListener("click", exportCsv);
+
+        document.getElementById("pitmSearchInput").addEventListener("input", function () {
+            const keyword = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll(".pitm-row");
+
+            rows.forEach(function (row) {
+                const detailRow = row.nextElementSibling;
+                const text = (row.innerText + " " + (detailRow ? detailRow.innerText : "")).toLowerCase();
+                const visible = text.includes(keyword);
+
+                row.style.display = visible ? "" : "none";
+
+                if (detailRow && detailRow.classList.contains("pitm-detail-row")) {
+                    detailRow.style.display = visible && detailRow.classList.contains("pitm-show") ? "table-row" : "none";
+                }
+            });
+        });
+
+        active.addEventListener("change", setActiveText);
+
+        clearForm();
+    });
+</script>

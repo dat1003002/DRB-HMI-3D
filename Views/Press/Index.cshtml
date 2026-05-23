@@ -1,97 +1,389 @@
-﻿@{
+﻿@model List<DRB_HMI_3D.Models.PressItem>
+@using System.Text.RegularExpressions
+
+@{
     ViewData["Title"] = "Press";
+
+    var workshopId = ViewBag.WorkshopId is int wid ? wid : 0;
+}
+
+@functions {
+    int GetMachineNumber(string? machineName, int fallback)
+    {
+        if (string.IsNullOrWhiteSpace(machineName))
+        {
+            return fallback;
+        }
+
+        var match = Regex.Match(machineName, @"\d+");
+
+        if (match.Success && int.TryParse(match.Value, out var number))
+        {
+            return number;
+        }
+
+        return fallback;
+    }
+
+    string MachineDisplayNumber(string? machineName, int fallback)
+    {
+        return GetMachineNumber(machineName, fallback).ToString("00");
+    }
 }
 
 <div class="drb6-wrap">
-    <main class="drb6-dashboard" id="drb6-dashboard"></main>
+    <main class="drb6-dashboard" id="drb6-dashboard">
+
+        @if (Model == null || Model.Count == 0)
+        {
+            <div style="color:white;font-size:24px;padding:30px;">
+                Không có máy trong nhóm này
+            </div>
+        }
+        else
+        {
+            var index = 1;
+
+            foreach (var machine in Model)
+            {
+                var machineNo = MachineDisplayNumber(machine.Name, index);
+
+                <section class="drb6-card"
+                         id="drb6-card-@machine.Id"
+                         data-machine-id="@machine.Id">
+
+                    <div class="drb6-title">
+                        DEKUMA PRESS #@machineNo
+                    </div>
+
+                    <div class="drb6-table">
+                        <div class="drb6-row drb6-header-row">
+                            <div class="drb6-cell drb6-start-cell" id="drb6-status-@machine.Id">
+                                <div class="drb6-btn-status drb6-stop">
+                                    <span class="drb6-square"></span> STOP
+                                </div>
+                            </div>
+
+                            <div class="drb6-cell drb6-head-cell">TIÊU CHUẨN</div>
+                            <div class="drb6-cell drb6-head-cell">HIỆN TẠI</div>
+                        </div>
+
+                        <div class="drb6-row">
+                            <div class="drb6-cell drb6-label-cell">
+                                <span class="drb6-icon">
+                                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l4 2"></path></svg>
+                                </span>
+                                <span>THỜI GIAN</span>
+                            </div>
+                            <div class="drb6-cell drb6-std-cell">Vdse-i-406</div>
+                            <div class="drb6-cell drb6-value-cell" id="drb6-time-@machine.Id">--</div>
+                        </div>
+
+                        <div class="drb6-row">
+                            <div class="drb6-cell drb6-label-cell">
+                                <span class="drb6-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"></path><path d="M12 16l5-6"></path><path d="M6 20h12"></path></svg>
+                                </span>
+                                <span>ÁP LỰC</span>
+                            </div>
+                            <div class="drb6-cell drb6-std-cell">196 (±10) Kgf/cm<sup>2</sup></div>
+                            <div class="drb6-cell drb6-value-cell" id="drb6-pressure-@machine.Id">0.0</div>
+                        </div>
+
+                        <div class="drb6-row">
+                            <div class="drb6-cell drb6-label-cell">
+                                <span class="drb6-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"></path><path d="M12 7v8"></path></svg>
+                                </span>
+                                <span>NHIỆT ĐỘ TRÊN</span>
+                            </div>
+                            <div class="drb6-cell drb6-std-cell">150 (±5) °C</div>
+                            <div class="drb6-cell drb6-value-cell" id="drb6-temp-top-@machine.Id">0.0°C</div>
+                        </div>
+
+                        <div class="drb6-row">
+                            <div class="drb6-cell drb6-label-cell">
+                                <span class="drb6-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"></path><path d="M12 7v8"></path></svg>
+                                </span>
+                                <span>NHIỆT ĐỘ GIỮA</span>
+                            </div>
+                            <div class="drb6-cell drb6-std-cell">150 (±5) °C</div>
+                            <div class="drb6-cell drb6-value-cell" id="drb6-temp-mid-@machine.Id">0.0°C</div>
+                        </div>
+
+                        <div class="drb6-row">
+                            <div class="drb6-cell drb6-label-cell">
+                                <span class="drb6-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"></path><path d="M12 7v8"></path></svg>
+                                </span>
+                                <span>NHIỆT ĐỘ DƯỚI</span>
+                            </div>
+                            <div class="drb6-cell drb6-std-cell">150 (±5) °C</div>
+                            <div class="drb6-cell drb6-value-cell" id="drb6-temp-bottom-@machine.Id">0.0°C</div>
+                        </div>
+                    </div>
+                </section>
+
+                index++;
+            }
+        }
+
+    </main>
 </div>
 
 <script>
-    const drb6Dashboard = document.getElementById("drb6-dashboard");
+    (() => {
+        const workshopId = @workshopId;
 
-    const drb6Icons = {
-        time: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l4 2"></path></svg>`,
-        pressure: `<svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"></path><path d="M12 16l5-6"></path><path d="M6 20h12"></path></svg>`,
-        temp: `<svg viewBox="0 0 24 24"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"></path><path d="M12 7v8"></path></svg>`
-    };
+        const localMachineIds = new Set(
+            Array.from(document.querySelectorAll("[data-machine-id]"))
+                .map(item => Number(item.dataset.machineId))
+        );
 
-    function drb6SafeNumber(value, fixed = 1) {
-        const number = Number(value);
-        if (Number.isNaN(number)) return "--";
-        return number.toFixed(fixed);
-    }
+        const drb6RunState = new Map();
 
-    function drb6Row(icon, label, standard, value, unit = "", alertClass = "") {
-        return `
-            <div class="drb6-row">
-                <div class="drb6-cell drb6-label-cell">
-                    <span class="drb6-icon">${icon}</span>
-                    <span>${label}</span>
-                </div>
-                <div class="drb6-cell drb6-std-cell">
-                    ${standard}
-                </div>
-                <div class="drb6-cell drb6-value-cell">
-                    ${value}${unit ? `<span class="drb6-unit">${unit}</span>` : ""}
-                </div>
-            </div>
-        `;
-    }
+        function setText(id, value) {
+            const element = document.getElementById(id);
 
-    // Sửa hàm formatMinutes để trực tiếp hiển thị số phút
-    function formatMinutes(minutes) {
-        if (minutes == null || minutes === 0) return "--";
-        return `${minutes} phút`;
-    }
+            if (!element) {
+                return;
+            }
 
-    function drb6CreateCard(machine) {
-        const id = Number(String(machine.machine).replace("CTL", ""));
-        const isStart = Number(machine.startStop) === 1;
-        const status = isStart ? "START" : "STOP";
-        const statusClass = isStart ? "drb6-start" : "drb6-stop";
-        const statusIcon = isStart ? `<span class="drb6-play"></span>` : `<span class="drb6-square"></span>`;
+            element.textContent = value;
+        }
 
-        return `
-            <section class="drb6-card">
-                <div class="drb6-title">
-                    DEKUMA PRESS #${String(id).padStart(2, "0")}
-                </div>
-                <div class="drb6-table">
-                    <div class="drb6-row drb6-header-row">
-                        <div class="drb6-cell drb6-start-cell">
-                            <div class="drb6-btn-status ${statusClass}">
-                                ${statusIcon} ${status}
-                            </div>
-                        </div>
-                        <div class="drb6-cell drb6-head-cell">TIÊU CHUẨN</div>
-                        <div class="drb6-cell drb6-head-cell">HIỆN TẠI</div>
+        function setHtml(id, html) {
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return;
+            }
+
+            element.innerHTML = html;
+        }
+
+        function toNumber(value) {
+            if (value === null || value === undefined || value === "") {
+                return null;
+            }
+
+            const number = Number(String(value).replace(",", "."));
+
+            if (Number.isNaN(number)) {
+                return null;
+            }
+
+            return number;
+        }
+
+        function getValueOrZero(readOk, value) {
+            const number = toNumber(value);
+
+            if (readOk === true && number !== null) {
+                return number;
+            }
+
+            return 0;
+        }
+
+        function numberText(value, fixed = 1) {
+            const number = toNumber(value);
+
+            if (number === null) {
+                return "0.0";
+            }
+
+            return number.toFixed(fixed);
+        }
+
+        function minuteText(value) {
+            const number = toNumber(value);
+
+            if (number === null) {
+                return "--";
+            }
+
+            return `${number} phút`;
+        }
+
+        function isStartStatus(statusValue) {
+            const value = String(statusValue ?? "").trim().toUpperCase();
+
+            return value === "1" ||
+                value === "TRUE" ||
+                value === "START" ||
+                value === "RUNNING" ||
+                value === "RUN" ||
+                value === "HOAT DONG" ||
+                value === "HOẠT ĐỘNG";
+        }
+
+        function isStopStatus(statusValue) {
+            const value = String(statusValue ?? "").trim().toUpperCase();
+
+            return value === "0" ||
+                value === "FALSE" ||
+                value === "STOP" ||
+                value === "DUNG" ||
+                value === "DỪNG";
+        }
+
+        function statusHtml(statusValue) {
+            if (isStartStatus(statusValue)) {
+                return `
+                    <div class="drb6-btn-status drb6-start">
+                        <span class="drb6-play"></span> START
                     </div>
+                `;
+            }
 
-                    ${drb6Row(drb6Icons.time, "THỜI GIAN", "Vdse-i-406", formatMinutes(machine.thoiGianLuuHoa))}
-                    ${drb6Row(drb6Icons.pressure, "ÁP LỰC", "196 (±10) Kgf/cm<sup>2</sup>", drb6SafeNumber(machine.apLuc, 1))}
-                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ TRÊN", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamTren, 1), "°C")}
-                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ GIỮA", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamGiua, 1), "°C")}
-                    ${drb6Row(drb6Icons.temp, "NHIỆT ĐỘ DƯỚI", "150 (±5) °C", drb6SafeNumber(machine.nhietDoMamDuoi, 1), "°C")}
+            return `
+                <div class="drb6-btn-status drb6-stop">
+                    <span class="drb6-square"></span> STOP
                 </div>
-            </section>
-        `;
-    }
+            `;
+        }
 
-    async function drb6LoadRealtime() {
-        try {
-            const response = await fetch("/Press/GetAllMachines", { cache: "no-store" });
-            if (!response.ok) throw new Error("Không lấy được dữ liệu từ server");
-            const machines = await response.json();
-            if (!drb6Dashboard) return;
-            drb6Dashboard.innerHTML = machines.map(drb6CreateCard).join("");
-        } catch (error) {
-            console.error("Lỗi lấy dữ liệu máy:", error);
-            if (drb6Dashboard) {
-                drb6Dashboard.innerHTML = `<div style="color:white;font-size:24px;padding:30px;">Lỗi kết nối dữ liệu máy ép</div>`;
+        function setAlarm(id, isAlarm) {
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return;
+            }
+
+            if (isAlarm) {
+                element.classList.add("drb6-high");
+            } else {
+                element.classList.remove("drb6-high");
             }
         }
-    }
 
-    drb6LoadRealtime();
-    setInterval(drb6LoadRealtime, 1000);
+        function clearMachineAlarm(id) {
+            setAlarm(`drb6-pressure-${id}`, false);
+            setAlarm(`drb6-temp-top-${id}`, false);
+            setAlarm(`drb6-temp-mid-${id}`, false);
+            setAlarm(`drb6-temp-bottom-${id}`, false);
+        }
+
+        function updatePressure(machineId, value, allowAlarm) {
+            const elementId = `drb6-pressure-${machineId}`;
+            const text = numberText(value, 1);
+
+            setText(elementId, text);
+
+            const number = toNumber(value);
+            const isAlarm = allowAlarm && number !== null && (number < 186 || number > 206);
+
+            setAlarm(elementId, isAlarm);
+        }
+
+        function updateTemp(elementId, value, allowAlarm) {
+            const text = numberText(value, 1);
+
+            setText(elementId, `${text}°C`);
+
+            const number = toNumber(value);
+            const isAlarm = allowAlarm && number !== null && (number < 145 || number > 155);
+
+            setAlarm(elementId, isAlarm);
+        }
+
+        function applyMachine(machine) {
+            if (!machine || !localMachineIds.has(Number(machine.id))) {
+                return;
+            }
+
+            const id = Number(machine.id);
+
+            const isRunning = machine.statusReadOk === true && isStartStatus(machine.statusValue);
+
+            setHtml(`drb6-status-${id}`, statusHtml(isRunning ? "START" : "STOP"));
+            drb6RunState.set(id, isRunning);
+
+            const allowAlarm = isRunning === true;
+
+            if (!allowAlarm) {
+                clearMachineAlarm(id);
+
+                if (machine.timeReadOk) {
+                    setText(`drb6-time-${id}`, minuteText(machine.time));
+                }
+
+                updatePressure(id, getValueOrZero(machine.pressureReadOk, machine.pressure), false);
+                updateTemp(`drb6-temp-top-${id}`, getValueOrZero(machine.tempTopReadOk, machine.tempTop), false);
+                updateTemp(`drb6-temp-mid-${id}`, getValueOrZero(machine.tempMidReadOk, machine.tempMid), false);
+                updateTemp(`drb6-temp-bottom-${id}`, getValueOrZero(machine.tempBottomReadOk, machine.tempBottom), false);
+
+                return;
+            }
+
+            if (machine.timeReadOk) {
+                setText(`drb6-time-${id}`, minuteText(machine.time));
+            }
+
+            if (machine.pressureReadOk) {
+                updatePressure(id, machine.pressure, allowAlarm);
+            }
+
+            if (machine.tempTopReadOk) {
+                updateTemp(`drb6-temp-top-${id}`, machine.tempTop, allowAlarm);
+            }
+
+            if (machine.tempMidReadOk) {
+                updateTemp(`drb6-temp-mid-${id}`, machine.tempMid, allowAlarm);
+            }
+
+            if (machine.tempBottomReadOk) {
+                updateTemp(`drb6-temp-bottom-${id}`, machine.tempBottom, allowAlarm);
+            }
+        }
+
+        function applyRealtimeData(data) {
+            if (!data || !data.success || !Array.isArray(data.machines)) {
+                return;
+            }
+
+            data.machines.forEach(applyMachine);
+        }
+
+        async function startSignalR() {
+            if (!window.signalR) {
+                setTimeout(startSignalR, 1000);
+                return;
+            }
+
+            if (!workshopId || workshopId <= 0) {
+                console.log("Không xác định được workshopId cho trang Press.");
+                return;
+            }
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/hmi-realtime")
+                .withAutomaticReconnect([0, 1000, 3000, 5000])
+                .build();
+
+            connection.on("RealtimeUpdate", data => {
+                applyRealtimeData(data);
+            });
+
+            connection.onreconnected(async () => {
+                try {
+                    await connection.invoke("JoinWorkshop", workshopId);
+                } catch (error) {
+                    console.log("SignalR rejoin error:", error);
+                }
+            });
+
+            try {
+                await connection.start();
+                await connection.invoke("JoinWorkshop", workshopId);
+            } catch (error) {
+                console.log("SignalR connect error:", error);
+                setTimeout(startSignalR, 2000);
+            }
+        }
+
+        startSignalR();
+    })();
 </script>

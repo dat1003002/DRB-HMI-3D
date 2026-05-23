@@ -58,7 +58,7 @@ body {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    padding: 12px;
+/*    padding: 12px;*/
 }
 
 .app-render {

@@ -1,100 +1,859 @@
-﻿<div class="ai-machine-grid" id="aiMachineGrid"></div>
+﻿@model DRB_HMI_3D.Models.Workshop
+@using DRB_HMI_3D.Models
+@using System.Globalization
+@using System.Text.RegularExpressions
 
-<script>
-    const machines = [
-        { name: "MÁY 01", pressure1: "193.1", pressure2: "196.0", topTemp: "148.6", middleTemp: "149.5", bottomTemp: "150.1", travel1: "50", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
-        { name: "MÁY 02", pressure1: "194.5", pressure2: "196.0", topTemp: "149.2", middleTemp: "150.0", bottomTemp: "149.7", travel1: "45", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
-        { name: "MÁY 03", pressure1: "192.3", pressure2: "196.0", topTemp: "147.9", middleTemp: "149.1", bottomTemp: "150.5", travel1: "48", travel2: "80", status: "Không hoạt động", image: "/image/ngungmay.png" },
-        { name: "MÁY 04", pressure1: "193.8", pressure2: "196.0", topTemp: "148.3", middleTemp: "149.9", bottomTemp: "150.2", travel1: "55", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
-        { name: "MÁY 05", pressure1: "195.0", pressure2: "196.0", topTemp: "149.8", middleTemp: "150.3", bottomTemp: "150.0", travel1: "52", travel2: "80", status: "Hoạt động", image: "/image/1.png" },
-        { name: "MÁY 06", pressure1: "175.8", pressure2: "196.0", topTemp: "147.5", middleTemp: "148.8", bottomTemp: "149.6", travel1: "46", travel2: "80", status: "Hoạt động", image: "/image/mayloi.png" }
-    ];
+@if (Model == null)
+{
+    <div style="color:white;padding:20px;">
+        Không có dữ liệu Workshop.
+    </div>
 
-    const grid = document.getElementById("aiMachineGrid");
+    return;
+}
 
-    machines.forEach(machine => {
-        const isActive = machine.status === "Hoạt động";
-        const inactiveClass = isActive ? '' : ' inactive';
+@functions {
+    PressTag? GetTag(PressItem press, params string[] names)
+    {
+        if (press == null || press.Tags == null)
+        {
+            return null;
+        }
 
-        const p1 = parseFloat(machine.pressure1);
-        const isPressureOut = Math.abs(p1 - 196.0) > 5;
-        const isLowPressure = p1 < 191;
+        foreach (var tag in press.Tags)
+        {
+            if (tag == null || string.IsNullOrWhiteSpace(tag.Name))
+            {
+                continue;
+            }
 
-        const boxWarningClass = (isLowPressure || isPressureOut) ? ' pressure-warning' : '';
-        const pressureClass = (isLowPressure || isPressureOut) ? ' pressure-low' : '';
+            var tagName = tag.Name.Trim().ToUpper();
 
-        const statusText = isPressureOut ? 'Lệch Áp Suất' : (isLowPressure ? 'Cảnh báo' : machine.status);
-        const statusClass = (isLowPressure || isPressureOut) ? ' warning' : '';
+            foreach (var name in names)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
 
-        const startClass = isActive ? 'ai-machine-start active' : 'ai-machine-start dim';
-        const stopClass = isActive ? 'ai-machine-stop dim' : 'ai-machine-stop active';
+                var key = name.Trim().ToUpper();
 
-        grid.innerHTML += `
-        <div class="ai-machine-card${inactiveClass}">
-            <div class="ai-machine-topbar">
-                <div class="ai-machine-name">${machine.name}</div>
-                <div class="ai-machine-status">
-                    <div class="ai-machine-dot"></div>
-                    ${machine.status}
+                if (tagName == key || tagName.Contains(key))
+                {
+                    return tag;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    string TagValue(PressTag? tag)
+    {
+        if (tag == null || string.IsNullOrWhiteSpace(tag.Value))
+        {
+            return "--";
+        }
+
+        return tag.Value;
+    }
+
+    bool IsOutsideLimit(string value, decimal setValue, decimal tolerance)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "--")
+        {
+            return false;
+        }
+
+        value = value.Trim().Replace(",", ".");
+
+        if (!decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var number))
+        {
+            return false;
+        }
+
+        var min = setValue - tolerance;
+        var max = setValue + tolerance;
+
+        return number < min || number > max;
+    }
+
+    bool HasLimitError(PressItem press)
+    {
+        var pressure = TagValue(GetTag(press, "AP LUC", "ÁP LỰC", "PRESSURE"));
+        var tempTop = TagValue(GetTag(press, "NHIET DO MAM TREN", "NHIỆT ĐỘ MÂM TRÊN", "TEMP TOP"));
+        var tempMid = TagValue(GetTag(press, "NHIET DO MAM GIUA", "NHIỆT ĐỘ MÂM GIỮA", "TEMP MID"));
+        var tempBottom = TagValue(GetTag(press, "NHIET DO MAM DUOI", "NHIỆT ĐỘ MÂM DƯỚI", "TEMP BOTTOM"));
+
+        if (IsOutsideLimit(pressure, 196m, 10m))
+        {
+            return true;
+        }
+
+        if (IsOutsideLimit(tempTop, 150m, 5m))
+        {
+            return true;
+        }
+
+        if (IsOutsideLimit(tempMid, 150m, 5m))
+        {
+            return true;
+        }
+
+        if (IsOutsideLimit(tempBottom, 150m, 5m))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    string PressureCss(string value)
+    {
+        if (IsOutsideLimit(value, 196m, 10m))
+        {
+            return "drb-hmi-pressure-error";
+        }
+
+        return "";
+    }
+
+    string TempCss(string value)
+    {
+        if (IsOutsideLimit(value, 150m, 5m))
+        {
+            return "drb-hmi-temp-high";
+        }
+
+        return "drb-hmi-temp-normal";
+    }
+
+    string TempText(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "--")
+        {
+            return "--";
+        }
+
+        return value + "°C";
+    }
+
+    int GetMachineNumber(PressItem press)
+    {
+        if (press == null)
+        {
+            return int.MaxValue;
+        }
+
+        var candidates = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(press.Name))
+        {
+            candidates.Add(press.Name.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(press.KepwareTag))
+        {
+            candidates.Add(press.KepwareTag.Trim());
+        }
+
+        foreach (var text in candidates)
+        {
+            var match = Regex.Match(text, @"CTL\s*\.?\s*(\d+)", RegexOptions.IgnoreCase);
+
+            if (match.Success && int.TryParse(match.Groups[1].Value, out var number))
+            {
+                return number;
+            }
+        }
+
+        foreach (var text in candidates)
+        {
+            var matches = Regex.Matches(text, @"\d+");
+
+            if (matches.Count > 0)
+            {
+                var lastNumber = matches[matches.Count - 1].Value;
+
+                if (int.TryParse(lastNumber, out var number))
+                {
+                    return number;
+                }
+            }
+        }
+
+        return int.MaxValue;
+    }
+
+    string MachineDisplayNumber(PressItem press, int index)
+    {
+        var number = GetMachineNumber(press);
+
+        if (number == int.MaxValue)
+        {
+            return index.ToString("00");
+        }
+
+        return number.ToString("00");
+    }
+
+    string GetStatusCss(PressItem press)
+    {
+        if (press == null)
+        {
+            return "drb-hmi-stop-card";
+        }
+
+        var tag = GetTag(press, "START/STOP", "TRANG THAI", "TRẠNG THÁI", "STATUS");
+        var value = TagValue(tag).Trim().ToUpper();
+
+        if (!press.Active)
+        {
+            return "drb-hmi-stop-card";
+        }
+
+        if (value == "--" || value == "")
+        {
+            return "drb-hmi-stop-card";
+        }
+
+        if (value == "0" || value == "FALSE" || value == "STOP" || value == "DUNG" || value == "DỪNG")
+        {
+            return "drb-hmi-stop-card";
+        }
+
+        if (value == "2" || value == "LOI" || value == "LỖI" || value == "ERROR")
+        {
+            return "drb-hmi-error-card";
+        }
+
+        if (HasLimitError(press))
+        {
+            return "drb-hmi-error-card";
+        }
+
+        if (value == "3" || value == "CANH BAO" || value == "CẢNH BÁO" || value == "WARNING")
+        {
+            return "drb-hmi-warning-card";
+        }
+
+        return "drb-hmi-running";
+    }
+
+    string Percent(int value, int total)
+    {
+        if (total <= 0)
+        {
+            return "0%";
+        }
+
+        var percent = (double)value / total * 100;
+        return percent.ToString("0.0") + "%";
+    }
+
+    string DonutStyle(int running, int warning, int error, int stop, int total)
+    {
+        if (total <= 0)
+        {
+            return "--run-end:0deg;--warn-end:0deg;--err-end:0deg;";
+        }
+
+        var runEnd = (double)running / total * 360;
+        var warnEnd = runEnd + (double)warning / total * 360;
+        var errEnd = warnEnd + (double)error / total * 360;
+
+        return "--run-end:" + runEnd.ToString("0.##", CultureInfo.InvariantCulture) + "deg;" +
+               "--warn-end:" + warnEnd.ToString("0.##", CultureInfo.InvariantCulture) + "deg;" +
+               "--err-end:" + errEnd.ToString("0.##", CultureInfo.InvariantCulture) + "deg;";
+    }
+}
+
+@{
+    var machines = new List<PressItem>();
+
+    if (Model.PressGroups != null)
+    {
+        foreach (var group in Model.PressGroups)
+        {
+            if (group.PressItems != null)
+            {
+                foreach (var press in group.PressItems)
+                {
+                    machines.Add(press);
+                }
+            }
+        }
+    }
+
+    machines = machines
+        .OrderBy(x => GetMachineNumber(x))
+        .ThenBy(x => x.Id)
+        .ToList();
+
+    var total = machines.Count;
+    var running = 0;
+    var warning = 0;
+    var error = 0;
+    var stop = 0;
+
+    foreach (var press in machines)
+    {
+        var css = GetStatusCss(press);
+
+        if (css == "drb-hmi-running")
+        {
+            running++;
+        }
+        else if (css == "drb-hmi-warning-card")
+        {
+            warning++;
+        }
+        else if (css == "drb-hmi-error-card")
+        {
+            error++;
+        }
+        else
+        {
+            stop++;
+        }
+    }
+}
+
+<div class="drb-hmi-wrap">
+    <div class="drb-hmi-grid" id="drb-hmi-grid">
+        @{
+            var index = 1;
+        }
+
+        @foreach (var press in machines)
+        {
+            var statusCss = GetStatusCss(press);
+
+            var time = TagValue(GetTag(
+            press,
+            "THOI GIAN LUU HOA",
+            "THỜI GIAN LƯU HÓA",
+            "TIME"));
+
+            var pressure = TagValue(GetTag(
+            press,
+            "AP LUC",
+            "ÁP LỰC",
+            "PRESSURE"));
+
+            var tempTop = TagValue(GetTag(
+            press,
+            "NHIET DO MAM TREN",
+            "NHIỆT ĐỘ MÂM TRÊN",
+            "TEMP TOP"));
+
+            var tempMid = TagValue(GetTag(
+            press,
+            "NHIET DO MAM GIUA",
+            "NHIỆT ĐỘ MÂM GIỮA",
+            "TEMP MID"));
+
+            var tempBottom = TagValue(GetTag(
+            press,
+            "NHIET DO MAM DUOI",
+            "NHIỆT ĐỘ MÂM DƯỚI",
+            "TEMP BOTTOM"));
+
+            <div class="drb-hmi-card @statusCss" id="machine-@press.Id">
+                <div class="drb-hmi-card-top">
+                    <div class="drb-hmi-no">@MachineDisplayNumber(press, index)</div>
+
+                    <div class="drb-hmi-top-right">
+                        <div class="drb-hmi-card-mini-time" id="time-@press.Id">@time'</div>
+                        <div class="drb-hmi-status-dot"></div>
+                    </div>
                 </div>
-                <button class="ai-machine-btn ${startClass}">START</button>
-                <button class="ai-machine-btn ${stopClass}">STOP</button>
+
+                <div class="drb-hmi-pressure-row">
+                    <div class="drb-hmi-pressure-label">Áp Lực</div>
+
+                    <div class="drb-hmi-pressure-value">
+                        <span class="drb-hmi-pressure-main @PressureCss(pressure)" id="pressure-@press.Id">@pressure</span>
+                        <span>Kgf/cm<sup>2</sup></span>
+                    </div>
+                </div>
+
+                <div class="drb-hmi-temp-row">
+                    <div class="drb-hmi-temp-item">
+                        <div class="drb-hmi-temp-name">T.TRÊN</div>
+                        <div class="drb-hmi-temp-value @TempCss(tempTop)" id="temp-top-@press.Id">@TempText(tempTop)</div>
+                    </div>
+
+                    <div class="drb-hmi-temp-item">
+                        <div class="drb-hmi-temp-name">T.GIỮA</div>
+                        <div class="drb-hmi-temp-value @TempCss(tempMid)" id="temp-mid-@press.Id">@TempText(tempMid)</div>
+                    </div>
+
+                    <div class="drb-hmi-temp-item">
+                        <div class="drb-hmi-temp-name">T.DƯỚI</div>
+                        <div class="drb-hmi-temp-value @TempCss(tempBottom)" id="temp-bottom-@press.Id">@TempText(tempBottom)</div>
+                    </div>
+                </div>
+
+                <div class="drb-hmi-chart-box">
+                    <svg class="drb-hmi-sparkline-svg" viewBox="0 0 100 18" preserveAspectRatio="none">
+                        <path class="drb-hmi-sparkline-fill"
+                              id="pressure-fill-@press.Id"
+                              d="">
+                        </path>
+
+                        <path class="drb-hmi-sparkline-line"
+                              id="pressure-line-@press.Id"
+                              d="">
+                        </path>
+                    </svg>
+                </div>
             </div>
-            <div class="ai-machine-content">
-                <div class="ai-machine-left">
-                    <div class="ai-machine-box${boxWarningClass}">
-                        <div class="ai-machine-box-title">Áp Lực</div>
-                        <div class="ai-machine-row">
-                            <div class="ai-machine-line ai-machine-green"></div>
-                            <div class="ai-machine-value${pressureClass}">${machine.pressure1}<br>Thực Tế</div>
-                        </div>
-                        <div class="ai-machine-row">
-                            <div class="ai-machine-line ai-machine-blue"></div>
-                            <div class="ai-machine-value ai-machine-white">${machine.pressure2}<br>Tiêu Chuẩn</div>
-                        </div>
-                    </div>
-                    <div class="ai-machine-box">
-                        <div class="ai-machine-box-title">Nhiệt độ</div>
-                        <div class="ai-machine-temp">
-                            <span>Trên</span><b>${machine.topTemp}</b>
-                            <span>Giữa</span><b>${machine.middleTemp}</b>
-                            <span>Dưới</span><b>${machine.bottomTemp}</b>
-                        </div>
-                    </div>
+
+            index++;
+        }
+    </div>
+
+    <div class="drb-hmi-footer">
+        <div class="drb-hmi-footer-box drb-hmi-legend">
+            <div class="drb-hmi-legend-title">TRẠNG THÁI</div>
+
+            <div class="drb-hmi-legend-grid">
+                <div class="drb-hmi-legend-row">
+                    <span class="drb-hmi-bottom-dot drb-hmi-active"></span>
+                    HOẠT ĐỘNG
                 </div>
-                <div class="ai-machine-center">
-                    <img src="${machine.image}" class="ai-machine-image ${isPressureOut ? 'blink-red' : ''}">
+
+                <div class="drb-hmi-legend-row">
+                    <span class="drb-hmi-bottom-dot drb-hmi-error"></span>
+                    LỖI
                 </div>
-                <div class="ai-machine-right">
-                    <div class="ai-machine-box">
-                        <div class="ai-machine-box-title">Air vent</div>
-                        <div class="ai-machine-right-value">3</div>
-                    </div>
-                    <div class="ai-machine-box">
-                        <div class="ai-machine-box-title">Thời Gian</div>
-                        <div class="ai-machine-row">
-                            <div class="ai-machine-line ai-machine-green"></div>
-                            <div class="ai-machine-value">${machine.travel1}<br>Phút</div>
-                        </div>
-                        <div class="ai-machine-row">
-                            <div class="ai-machine-line ai-machine-blue"></div>
-                            <div class="ai-machine-value ai-machine-white">${machine.travel2}<br>Phút</div>
-                        </div>
-                    </div>
+
+                <div class="drb-hmi-legend-row">
+                    <span class="drb-hmi-bottom-dot drb-hmi-stop"></span>
+                    DỪNG
                 </div>
-                <div class="ai-machine-footer">
-                    <div class="ai-machine-gauge"></div>
-                    <div>
-                        <div style="font-size:13px;color:#ddd;">Thơi Gian Lưu Hóa</div>
-                        <div class="ai-machine-value${pressureClass}">${machine.travel1} Phút</div>
+            </div>
+        </div>
+
+        <div class="drb-hmi-footer-box drb-hmi-summary">
+            <div class="drb-hmi-summary-icon drb-hmi-blue">▣</div>
+            <div>
+                <div class="drb-hmi-summary-value drb-hmi-blue" id="drb-total-machine">@total</div>
+                <div class="drb-hmi-summary-label">TỔNG MÁY</div>
+            </div>
+        </div>
+
+        <div class="drb-hmi-footer-box drb-hmi-summary">
+            <div class="drb-hmi-summary-icon drb-hmi-green">▶</div>
+            <div>
+                <div class="drb-hmi-summary-value drb-hmi-green" id="drb-running-machine">@running</div>
+                <div class="drb-hmi-summary-label">ĐANG HOẠT ĐỘNG</div>
+                <div class="drb-hmi-summary-percent" id="drb-running-percent">@Percent(running, total)</div>
+            </div>
+        </div>
+
+
+        <div class="drb-hmi-footer-box drb-hmi-summary">
+            <div class="drb-hmi-summary-icon drb-hmi-red">⚠</div>
+            <div>
+                <div class="drb-hmi-summary-value drb-hmi-red" id="drb-error-machine">@error</div>
+                <div class="drb-hmi-summary-label">LỖI</div>
+                <div class="drb-hmi-summary-percent" id="drb-error-percent">@Percent(error, total)</div>
+            </div>
+        </div>
+
+        <div class="drb-hmi-footer-box drb-hmi-summary">
+            <div class="drb-hmi-summary-icon drb-hmi-gray">■</div>
+            <div>
+                <div class="drb-hmi-summary-value drb-hmi-gray" id="drb-stop-machine">@stop</div>
+                <div class="drb-hmi-summary-label">DỪNG</div>
+                <div class="drb-hmi-summary-percent" id="drb-stop-percent">@Percent(stop, total)</div>
+            </div>
+        </div>
+
+        <div class="drb-hmi-footer-box drb-hmi-summary drb-hmi-efficiency">
+            <div class="drb-hmi-circle">
+                <span></span>
+            </div>
+            <div>
+                <div class="drb-hmi-summary-value drb-hmi-blue" id="drb-efficiency-percent">@Percent(running, total)</div>
+                <div class="drb-hmi-summary-label drb-hmi-white">HIỆU SUẤT HOẠT ĐỘNG</div>
+            </div>
+        </div>
+        <div class="drb-hmi-footer-box drb-hmi-distribution">
+            <div class="drb-hmi-distribution-title">MACHINE STATUS</div>
+            <div class="drb-hmi-distribution-body">
+                <div class="drb-hmi-donut"
+                     id="drb-machine-donut"
+                     style="@DonutStyle(running, warning, error, stop, total)">
+                </div>
+
+                <div class="drb-hmi-dist-list">
+                    <div class="drb-hmi-dist-row">
+                        <span class="drb-hmi-dist-dot drb-hmi-active"></span>
+                        <span class="drb-hmi-dist-name">Running</span>
+                        <span class="drb-hmi-dist-value" id="drb-dist-running">@running (@Percent(running, total))</span>
                     </div>
-                    <div class="ai-machine-footer-status${statusClass}">
-                        Trạng thái: <span>${statusText}</span>
-                        <a href="#" class="ai-machine-link">Chi tiết →</a>
+
+                    <div class="drb-hmi-dist-row">
+                        <span class="drb-hmi-dist-dot drb-hmi-error"></span>
+                        <span class="drb-hmi-dist-name">Error</span>
+                        <span class="drb-hmi-dist-value" id="drb-dist-error">@error (@Percent(error, total))</span>
+                    </div>
+
+                    <div class="drb-hmi-dist-row">
+                        <span class="drb-hmi-dist-dot drb-hmi-stop"></span>
+                        <span class="drb-hmi-dist-name">Stopped</span>
+                        <span class="drb-hmi-dist-value" id="drb-dist-stop">@stop (@Percent(stop, total))</span>
                     </div>
                 </div>
             </div>
         </div>
-        `;
-    });
+
+    </div>
+</div>
+
+<script>
+    (() => {
+        const workshopId = @Model.Id;
+        const pressureHistory = {};
+        const maxPressurePoints = 36;
+
+        function setText(id, value, suffix = "") {
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return;
+            }
+
+            const text = value === null || value === undefined || value === "" ? "--" : value;
+            element.textContent = `${text}${suffix}`;
+        }
+
+        function percentText(value, total) {
+            const number = Number(value || 0);
+            const sum = Number(total || 0);
+
+            if (sum <= 0) {
+                return "0%";
+            }
+
+            return `${((number / sum) * 100).toFixed(1)}%`;
+        }
+
+        function updateDistribution(summary) {
+            if (!summary) {
+                return;
+            }
+
+            const total = Number(summary.total || 0);
+            const running = Number(summary.running || 0);
+            const warning = Number(summary.warning || 0);
+            const error = Number(summary.error || 0);
+            const stop = Number(summary.stop || 0);
+
+            const donut = document.getElementById("drb-machine-donut");
+
+            if (donut) {
+                let runEnd = 0;
+                let warnEnd = 0;
+                let errEnd = 0;
+
+                if (total > 0) {
+                    runEnd = running / total * 360;
+                    warnEnd = runEnd + warning / total * 360;
+                    errEnd = warnEnd + error / total * 360;
+                }
+
+                donut.style.setProperty("--run-end", `${runEnd}deg`);
+                donut.style.setProperty("--warn-end", `${warnEnd}deg`);
+                donut.style.setProperty("--err-end", `${errEnd}deg`);
+            }
+
+            setText("drb-dist-running", `${running} (${percentText(running, total)})`);
+            setText("drb-dist-warning", `${warning} (${percentText(warning, total)})`);
+            setText("drb-dist-error", `${error} (${percentText(error, total)})`);
+            setText("drb-dist-stop", `${stop} (${percentText(stop, total)})`);
+        }
+
+        function setPressureText(id, value) {
+            if (value === null || value === undefined || value === "") {
+                return;
+            }
+
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return;
+            }
+
+            const text = value;
+            element.textContent = text;
+
+            const number = parseFloat(String(text).replace(",", "."));
+
+            element.classList.remove("drb-hmi-pressure-error");
+
+            if (!isNaN(number) && (number < 186 || number > 206)) {
+                element.classList.add("drb-hmi-pressure-error");
+            }
+        }
+
+        function setTempText(id, value) {
+            if (value === null || value === undefined || value === "") {
+                return;
+            }
+
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return;
+            }
+
+            const text = value;
+
+            if (text === "--") {
+                element.textContent = "--";
+            } else {
+                element.textContent = `${text}°C`;
+            }
+
+            const number = parseFloat(String(text).replace(",", "."));
+
+            element.classList.remove("drb-hmi-temp-normal");
+            element.classList.remove("drb-hmi-temp-high");
+
+            if (!isNaN(number) && (number < 145 || number > 155)) {
+                element.classList.add("drb-hmi-temp-high");
+            } else {
+                element.classList.add("drb-hmi-temp-normal");
+            }
+        }
+
+        function updateCardStatus(machineId, statusCss) {
+            if (!statusCss || typeof statusCss !== "string") {
+                return;
+            }
+
+            const card = document.getElementById(`machine-${machineId}`);
+
+            if (!card) {
+                return;
+            }
+
+            card.classList.remove(
+                "drb-hmi-running",
+                "drb-hmi-warning-card",
+                "drb-hmi-error-card",
+                "drb-hmi-stop-card"
+            );
+
+            card.classList.add(statusCss);
+        }
+
+        function buildSmoothPath(points) {
+            if (points.length === 0) {
+                return "";
+            }
+
+            if (points.length === 1) {
+                return `M ${points[0].x},${points[0].y}`;
+            }
+
+            let d = `M ${points[0].x},${points[0].y}`;
+
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                const cx = ((p0.x + p1.x) / 2).toFixed(2);
+
+                d += ` C ${cx},${p0.y} ${cx},${p1.y} ${p1.x},${p1.y}`;
+            }
+
+            return d;
+        }
+
+        function updatePressureChart(machineId, value) {
+            if (value === null || value === undefined || value === "") {
+                return;
+            }
+
+            const line = document.getElementById(`pressure-line-${machineId}`);
+            const fill = document.getElementById(`pressure-fill-${machineId}`);
+
+            if (!line || !fill) {
+                return;
+            }
+
+            const number = parseFloat(String(value).replace(",", "."));
+
+            if (isNaN(number)) {
+                return;
+            }
+
+            if (!pressureHistory[machineId]) {
+                pressureHistory[machineId] = [];
+            }
+
+            pressureHistory[machineId].push(number);
+
+            if (pressureHistory[machineId].length > maxPressurePoints) {
+                pressureHistory[machineId].shift();
+            }
+
+            const values = pressureHistory[machineId];
+            const width = 100;
+            const height = 18;
+
+            let min = Math.min(...values);
+            let max = Math.max(...values);
+
+            if (min === max) {
+                const y = number <= 0 ? height - 1.5 : height / 2;
+
+                const flatPoints = values.map((item, index) => {
+                    const x = values.length === 1 ? width : index * (width / (values.length - 1));
+
+                    return {
+                        x: Number(x.toFixed(2)),
+                        y: Number(y.toFixed(2))
+                    };
+                });
+
+                const flatPathD = buildSmoothPath(flatPoints);
+
+                if (!flatPathD) {
+                    return;
+                }
+
+                const firstFlat = flatPoints[0];
+                const lastFlat = flatPoints[flatPoints.length - 1];
+                const flatFillD = `${flatPathD} L ${lastFlat.x},${height} L ${firstFlat.x},${height} Z`;
+
+                line.setAttribute("d", flatPathD);
+                fill.setAttribute("d", flatFillD);
+
+                return;
+            }
+
+            const padding = (max - min) * 0.28;
+            min = min - padding;
+            max = max + padding;
+
+            const points = values.map((item, index) => {
+                const x = values.length === 1 ? width : index * (width / (values.length - 1));
+                let y = height - ((item - min) / (max - min)) * height;
+
+                if (y < 1.5) {
+                    y = 1.5;
+                }
+
+                if (y > height - 1.5) {
+                    y = height - 1.5;
+                }
+
+                return {
+                    x: Number(x.toFixed(2)),
+                    y: Number(y.toFixed(2))
+                };
+            });
+
+            const pathD = buildSmoothPath(points);
+
+            if (!pathD) {
+                return;
+            }
+
+            const first = points[0];
+            const last = points[points.length - 1];
+            const fillD = `${pathD} L ${last.x},${height} L ${first.x},${height} Z`;
+
+            line.setAttribute("d", pathD);
+            fill.setAttribute("d", fillD);
+        }
+
+        function applyRealtimeData(data) {
+            if (!data || !data.success) {
+                return;
+            }
+
+            if (Array.isArray(data.machines)) {
+                data.machines.forEach(machine => {
+                    if (machine.statusReadOk) {
+                        updateCardStatus(machine.id, machine.statusCss);
+                    }
+
+                    if (machine.timeReadOk) {
+                        setText(`time-${machine.id}`, machine.time, "'");
+                    }
+
+                    if (machine.pressureReadOk) {
+                        setPressureText(`pressure-${machine.id}`, machine.pressure);
+                        updatePressureChart(machine.id, machine.pressure);
+                    }
+
+                    if (machine.tempTopReadOk) {
+                        setTempText(`temp-top-${machine.id}`, machine.tempTop);
+                    }
+
+                    if (machine.tempMidReadOk) {
+                        setTempText(`temp-mid-${machine.id}`, machine.tempMid);
+                    }
+
+                    if (machine.tempBottomReadOk) {
+                        setTempText(`temp-bottom-${machine.id}`, machine.tempBottom);
+                    }
+                });
+            }
+
+            if (data.summary) {
+                setText("drb-total-machine", data.summary.total);
+                setText("drb-running-machine", data.summary.running);
+                setText("drb-error-machine", data.summary.error);
+                setText("drb-stop-machine", data.summary.stop);
+
+                setText("drb-running-percent", data.summary.runningPercent);
+                setText("drb-error-percent", data.summary.errorPercent);
+                setText("drb-stop-percent", data.summary.stopPercent);
+                setText("drb-efficiency-percent", data.summary.efficiencyPercent);
+
+                updateDistribution(data.summary);
+            }
+        }
+
+        async function startRealtime() {
+            if (!window.signalR) {
+                setTimeout(startRealtime, 2000);
+                return;
+            }
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/hmi-realtime")
+                .withAutomaticReconnect([0, 1000, 3000, 5000])
+                .build();
+
+            connection.on("RealtimeUpdate", data => {
+                applyRealtimeData(data);
+            });
+
+            connection.onreconnected(async () => {
+                try {
+                    await connection.invoke("JoinWorkshop", workshopId);
+                } catch (error) {
+                    console.log("SignalR rejoin error:", error);
+                }
+            });
+
+            try {
+                await connection.start();
+                await connection.invoke("JoinWorkshop", workshopId);
+            } catch (error) {
+                console.log("SignalR connect error:", error);
+                setTimeout(startRealtime, 2000);
+            }
+        }
+
+        startRealtime();
+    })();
 </script>

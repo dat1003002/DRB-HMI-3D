@@ -1,0 +1,624 @@
+﻿.pitm-page {
+    width: 100%;
+    height: calc(100vh - 80px);
+    padding: 16px;
+    background: #020b14;
+    color: #e5f4ff;
+    display: grid;
+    grid-template-columns: minmax(680px, 1fr) 420px;
+    gap: 16px;
+    font-family: "Segoe UI", sans-serif;
+    overflow: hidden;
+}
+
+    .pitm-page * {
+        box-sizing: border-box;
+    }
+
+.pitm-left-panel,
+.pitm-right-panel {
+    min-width: 0;
+    min-height: 0;
+}
+
+.pitm-left-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pitm-right-panel {
+    overflow: hidden;
+}
+
+.pitm-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+
+.pitm-search-box {
+    width: 330px;
+    height: 36px;
+    border: 1px solid #1f3a5a;
+    background: #071424;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: #8ab9df;
+}
+
+    .pitm-search-box i {
+        font-size: 14px;
+        margin-right: 10px;
+        color: #7da6c9;
+    }
+
+    .pitm-search-box input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: #e5f4ff;
+        font-size: 13px;
+    }
+
+        .pitm-search-box input::placeholder {
+            color: #7d8da4;
+        }
+
+.pitm-icon-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #1f3a5a;
+    background: #071424;
+    color: #e5f4ff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+    .pitm-icon-btn:hover {
+        border-color: #00c8ff;
+        color: #00c8ff;
+        box-shadow: 0 0 10px rgba(0, 200, 255, 0.35);
+    }
+
+.pitm-table-card {
+    flex: 1;
+    min-height: 0;
+    border: 1px solid #1f3a5a;
+    border-radius: 4px;
+    background: #06111e;
+    box-shadow: 0 0 18px rgba(0, 174, 255, 0.08);
+    overflow: auto;
+}
+
+.pitm-main-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .pitm-main-table thead {
+        background: #091827;
+    }
+
+        .pitm-main-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #091827;
+        }
+
+    .pitm-main-table th {
+        height: 38px;
+        padding: 0 12px;
+        text-align: left;
+        color: #d8ecff;
+        font-weight: 600;
+        border-bottom: 1px solid #1a4664;
+        white-space: nowrap;
+    }
+
+    .pitm-main-table td {
+        height: 46px;
+        padding: 0 12px;
+        border-bottom: 1px solid rgba(80, 120, 150, 0.18);
+        color: #e4effa;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+        .pitm-main-table th:nth-child(1),
+        .pitm-main-table td:nth-child(1) {
+            width: 42px;
+            text-align: center;
+        }
+
+        .pitm-main-table th:nth-child(2),
+        .pitm-main-table td:nth-child(2) {
+            width: 48px;
+        }
+
+.pitm-row {
+    background: #081522;
+    transition: 0.2s;
+}
+
+    .pitm-row:hover {
+        background: #0b1e30;
+    }
+
+    .pitm-row.pitm-row-active {
+        background: #0b1f33;
+    }
+
+.pitm-expand-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #dbefff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .pitm-expand-btn i {
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .pitm-expand-btn:hover {
+        color: #00c8ff;
+    }
+
+.pitm-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    min-width: 54px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pitm-status-on {
+    color: #44f28f;
+    background: rgba(0, 180, 96, 0.18);
+    border: 1px solid rgba(0, 180, 96, 0.25);
+}
+
+.pitm-status-off {
+    color: #ff6565;
+    background: rgba(255, 60, 60, 0.18);
+    border: 1px solid rgba(255, 60, 60, 0.25);
+}
+
+.pitm-tag-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 10px;
+    color: #2d9cff;
+    background: rgba(0, 120, 255, 0.16);
+    border: 1px solid rgba(0, 120, 255, 0.28);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.pitm-action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pitm-action-btn,
+.pitm-small-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+    .pitm-action-btn i,
+    .pitm-small-btn i {
+        font-size: 12px;
+        pointer-events: none;
+    }
+
+.pitm-edit-btn {
+    background: #1d6eea;
+}
+
+    .pitm-edit-btn:hover {
+        background: #2f86ff;
+        box-shadow: 0 0 10px rgba(47, 134, 255, 0.45);
+    }
+
+.pitm-delete-btn {
+    background: #ef3d43;
+    border-radius: 5px;
+}
+
+    .pitm-delete-btn:hover {
+        background: #ff555a;
+        box-shadow: 0 0 10px rgba(255, 85, 90, 0.45);
+    }
+
+.pitm-more-btn {
+    background: #10243a;
+    color: #b8d9f3;
+}
+
+    .pitm-more-btn:hover {
+        background: #153454;
+        color: #ffffff;
+    }
+
+.pitm-detail-row {
+    display: none;
+}
+
+    .pitm-detail-row.pitm-show {
+        display: table-row;
+    }
+
+    .pitm-detail-row > td {
+        height: auto;
+        padding: 14px 58px;
+        background: #071320;
+    }
+
+.pitm-detail-box {
+    width: 100%;
+    border: 1px solid #1d405f;
+    border-radius: 4px;
+    background: #081827;
+    overflow-x: auto;
+}
+
+.pitm-detail-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .pitm-detail-table th,
+    .pitm-detail-table td {
+        height: 42px;
+        padding: 0 16px;
+        color: #e5f4ff;
+        border-bottom: 1px solid rgba(80, 120, 150, 0.2);
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .pitm-detail-table th {
+        height: 38px;
+        color: #d9edff;
+        background: #0a1d2f;
+        border-bottom: 1px solid #1a4664;
+        font-weight: 600;
+        text-align: left;
+    }
+
+.pitm-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.pitm-value-green {
+    color: #46f395;
+    background: rgba(0, 180, 96, 0.18);
+    border: 1px solid rgba(0, 180, 96, 0.3);
+}
+
+.pitm-value-red {
+    color: #ff5f69;
+    background: rgba(255, 60, 70, 0.16);
+    border: 1px solid rgba(255, 60, 70, 0.3);
+}
+
+.pitm-value-blue {
+    color: #2d9cff;
+    background: rgba(0, 120, 255, 0.18);
+    border: 1px solid rgba(0, 120, 255, 0.3);
+}
+
+.pitm-table-footer {
+    height: 48px;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #9ebbd6;
+    font-size: 13px;
+    background: #06111e;
+}
+
+.pitm-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    .pitm-pagination button {
+        width: 32px;
+        height: 32px;
+        border: 1px solid #173452;
+        background: #071424;
+        color: #cfeaff;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+        .pitm-pagination button:hover,
+        .pitm-page-active {
+            border-color: #137eff !important;
+            color: #39a9ff !important;
+            box-shadow: 0 0 8px rgba(19, 126, 255, 0.35);
+        }
+
+.pitm-form-card {
+    height: 100%;
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid #036b9a;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #0b1a2a 0%, #071321 100%);
+    box-shadow: 0 0 18px rgba(0, 200, 255, 0.35);
+}
+
+.pitm-section-title {
+    color: #00b7ff;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+.pitm-form-group {
+    margin-bottom: 12px;
+}
+
+    .pitm-form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #d9edff;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+        .pitm-form-group label span {
+            color: #ff4a61;
+        }
+
+    .pitm-form-group input,
+    .pitm-form-group select {
+        width: 100%;
+        height: 36px;
+        border: 1px solid #213c59;
+        background: #091425;
+        color: #e5f4ff;
+        border-radius: 3px;
+        padding: 0 10px;
+        outline: none;
+        font-size: 13px;
+    }
+
+        .pitm-form-group input:focus,
+        .pitm-form-group select:focus {
+            border-color: #00b7ff;
+            box-shadow: 0 0 8px rgba(0, 183, 255, 0.25);
+        }
+
+.pitm-switch-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pitm-switch {
+    position: relative;
+    width: 44px;
+    height: 22px;
+    display: inline-block;
+}
+
+    .pitm-switch input {
+        display: none;
+    }
+
+    .pitm-switch span {
+        position: absolute;
+        inset: 0;
+        background: #25384f;
+        border-radius: 999px;
+        transition: 0.2s;
+    }
+
+        .pitm-switch span::before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 2px;
+            top: 2px;
+            background: #dcefff;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+    .pitm-switch input:checked + span {
+        background: #0abf77;
+    }
+
+        .pitm-switch input:checked + span::before {
+            transform: translateX(22px);
+        }
+
+.pitm-line {
+    height: 1px;
+    background: #1b3b58;
+    margin: 18px 0;
+}
+
+.pitm-tag-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.pitm-add-tag-btn {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #0b74c8;
+    background: rgba(0, 110, 220, 0.15);
+    color: #35b9ff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pitm-tag-editor {
+    border: 1px solid #1d405f;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pitm-tag-editor-head {
+    display: grid;
+    grid-template-columns: 1fr 70px 1.7fr 52px;
+    background: #0a1d2f;
+    border-bottom: 1px solid #1a4664;
+}
+
+    .pitm-tag-editor-head span {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        color: #cfeaff;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+.pitm-tag-editor-row {
+    display: grid;
+    grid-template-columns: 1fr 70px 1.7fr 52px;
+    gap: 8px;
+    padding: 8px;
+    background: #081827;
+    border-bottom: 1px solid rgba(80, 120, 150, 0.18);
+}
+
+    .pitm-tag-editor-row input {
+        width: 100%;
+        height: 32px;
+        border: 1px solid #213c59;
+        background: #091425;
+        color: #e5f4ff;
+        border-radius: 3px;
+        padding: 0 8px;
+        outline: none;
+    }
+
+.pitm-form-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+    .pitm-form-actions button {
+        height: 36px;
+        min-width: 70px;
+        border: none;
+        border-radius: 4px;
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 10px;
+        cursor: pointer;
+    }
+
+.pitm-reset-btn {
+    background: #263b55;
+}
+
+.pitm-save-btn {
+    background: #1d6eea;
+}
+
+.pitm-cancel-btn {
+    background: #ef3d43;
+}
+
+@media (max-width: 1200px) {
+    .pitm-page {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: auto;
+    }
+
+    .pitm-right-panel {
+        order: -1;
+    }
+
+    .pitm-form-card {
+        height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .pitm-page {
+        padding: 10px;
+    }
+
+    .pitm-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .pitm-search-box {
+        width: 100%;
+    }
+
+    .pitm-tag-editor-head,
+    .pitm-tag-editor-row {
+        grid-template-columns: 1fr;
+    }
+
+    .pitm-form-actions {
+        flex-wrap: wrap;
+    }
+
+        .pitm-form-actions button {
+            flex: 1;
+        }
+}

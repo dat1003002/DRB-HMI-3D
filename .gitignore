@@ -1,6 +1,6 @@
-﻿# Visual Studio temporary files
-.vs/
+﻿.vs/
 bin/
 obj/
+node_modules/
 *.user
 *.suo

@@ -1,4 +1,15 @@
-﻿<div id="sidebar" class="sidebar w-20 h-screen fixed top-0 left-0 flex flex-col">
+﻿@using Microsoft.EntityFrameworkCore
+@inject DRB_HMI_3D.Data.AppDbContext Db
+
+@{
+    var workshops = await Db.Workshops
+        .AsNoTracking()
+        .Include(x => x.PressGroups)
+        .OrderBy(x => x.Id)
+        .ToListAsync();
+}
+
+<div id="sidebar" class="sidebar w-20 h-screen fixed top-0 left-0 flex flex-col">
     <div class="sidebar-header">
         <button id="toggleBtn">
             <i class="fa-solid fa-bars"></i>
@@ -7,79 +18,260 @@
             <img src="/image/logo2.png" alt="DRB Logo" id="logoDRB">
         </div>
     </div>
+
     <nav>
-        <ul class="space-y-1">
+        <ul class="space-y-1 !pl-0">
             <li>
-                <a href="/Home/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Home/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-house"></i></div>
-                    <span class="text-label">Home</span>
+                <a href="/Home/Index" class="nav-item">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-house"></i>
+                    </div>
+                    <span class="text-label">Trang Chủ</span>
                 </a>
             </li>
-            <li>
-                <a href="/Banbury/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Banbury/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-industry"></i></div>
-                    <span class="text-label">Forming</span>
-                </a>
-            </li>
-            <li>
-                <a href="/Press/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Press/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-cogs"></i></div>
-                    <span class="text-label">Press</span>
-                </a>
-            </li>
-            <li>
-                <a href="/MetalCore/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/MetalCore/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-cube"></i></div>
-                    <span class="text-label">Băng Tải</span>
-                </a>
-            </li>
-            <li>
-                <a href="/SteelCord/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/SteelCord/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-link"></i></div>
-                    <span class="text-label">BanBury</span>
-                </a>
-            </li>
-            <li>
-                <a href="/Forming/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Forming/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-shapes"></i></div>
-                    <span class="text-label">Forming</span>
-                </a>
-            </li>
-            <li>
-                <a href="/Storage/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Storage/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-boxes-stacked"></i></div>
-                    <span class="text-label">Storage</span>
-                </a>
-            </li>
-            <li>
-                <a href="/Predss/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/Pressd/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-compress"></i></div>
-                    <span class="text-label">Press</span>
-                </a>
-            </li>
-            <li>
-                <a href="/AutoWH/Index" class="nav-item @(ViewContext.HttpContext.Request.Path == "/AutoWH/Index" ? "active" : "")">
-                    <div class="icon-wrapper"><i class="fa-solid fa-robot"></i></div>
-                    <span class="text-label">Auto W-H</span>
-                </a>
+
+            @foreach (var workshop in workshops)
+            {
+                var workshopIcon = string.IsNullOrWhiteSpace(workshop.Icon) ? "fa-solid fa-folder" : workshop.Icon;
+
+                var groups = workshop.PressGroups == null
+                ? new List<DRB_HMI_3D.Models.PressGroup>()
+                : workshop.PressGroups
+                .OrderBy(x => x.StartIndex)
+                .ThenBy(x => x.EndIndex)
+                .ToList();
+
+                <li class="nav-folder">
+                    <div class="nav-item folder-header">
+                        <div class="icon-wrapper">
+                            <i class="@workshopIcon"></i>
+                        </div>
+                        <span class="text-label">@workshop.Name</span>
+                        <i class="fa-solid fa-chevron-down folder-toggle" style="margin-left:auto;"></i>
+                    </div>
+
+                    <ul class="folder-content hidden">
+                        @foreach (var group in groups)
+                        {
+                            var groupIcon = string.IsNullOrWhiteSpace(group.Icon) ? "fa-solid fa-cogs" : group.Icon;
+                            var groupLabel = string.IsNullOrWhiteSpace(group.Label) ? $"Press {group.StartIndex} - {group.EndIndex}" : group.Label;
+
+                            <li>
+                                <a href="/Press/Index?groupId=@group.Id" class="nav-item">
+                                    <div class="icon-wrapper">
+                                        <i class="@groupIcon"></i>
+                                    </div>
+                                    <span class="text-label">@groupLabel</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+
+            <li class="nav-folder setting-folder">
+                <div class="nav-item folder-header">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-cogs"></i>
+                    </div>
+                    <span class="text-label">Setting</span>
+                    <i class="fa-solid fa-chevron-down folder-toggle" style="margin-left:auto;"></i>
+                </div>
+
+                <ul class="folder-content hidden">
+                    <li>
+                        <a href="/Setting/Workshop" class="nav-item setting-link">
+                            <div class="icon-wrapper">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                            <span class="text-label">Setting Xưởng</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/Setting/Machine" class="nav-item setting-link">
+                            <div class="icon-wrapper">
+                                <i class="fa-solid fa-gears"></i>
+                            </div>
+                            <span class="text-label">Setting Máy</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/PressItemTag/Index" class="nav-item setting-link">
+                            <div class="icon-wrapper">
+                                <i class="fa-solid fa-sliders-h"></i>
+                            </div>
+                            <span class="text-label">Press items & Tag</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
         </ul>
     </nav>
 </div>
 
+<div id="settingLoginModal" class="setting-login-modal hidden">
+    <div class="setting-login-box">
+        <button type="button" id="settingLoginClose" class="setting-login-close">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="setting-login-logo">
+            <img src="/image/logo2.png" alt="Company Logo">
+        </div>
+
+        <h3>Đăng nhập Setting</h3>
+        <p>Vui lòng nhập tài khoản và mật khẩu để mở mục Setting.</p>
+
+        <form id="settingLoginForm">
+            <input id="settingUsername" type="text" placeholder="Tài khoản" autocomplete="username">
+            <input id="settingPassword" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+
+            <div id="settingLoginError" class="setting-login-error hidden">
+                Tài khoản hoặc mật khẩu không đúng
+            </div>
+
+            <button type="submit" class="setting-login-submit">
+                Đăng nhập
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
 <script>
-     document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const SETTING_USERNAME = 'admin';
+        const SETTING_PASSWORD = 'admin123';
+
+        const SETTING_TOKEN_KEY = 'settingUnlocked';
+        const SETTING_TOKEN_EXPIRE_KEY = 'settingUnlockedExpireAt';
+        const SETTING_TOKEN_HOURS = 1;
+
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('toggleBtn');
         const fsButton = document.getElementById('fullscreen-btn');
         const fsIcon = fsButton ? fsButton.querySelector('i') : null;
 
+        const settingLoginModal = document.getElementById('settingLoginModal');
+        const settingLoginForm = document.getElementById('settingLoginForm');
+        const settingLoginClose = document.getElementById('settingLoginClose');
+        const settingUsername = document.getElementById('settingUsername');
+        const settingPassword = document.getElementById('settingPassword');
+        const settingLoginError = document.getElementById('settingLoginError');
+        const settingFolder = document.querySelector('.setting-folder');
+
+        let pendingSettingFolder = null;
+
+        function isSettingTokenValid() {
+            const unlocked = sessionStorage.getItem(SETTING_TOKEN_KEY);
+            const expireAt = Number(sessionStorage.getItem(SETTING_TOKEN_EXPIRE_KEY));
+
+            if (unlocked !== '1' || !expireAt) {
+                clearSettingToken();
+                return false;
+            }
+
+            if (Date.now() > expireAt) {
+                clearSettingToken();
+                return false;
+            }
+
+            return true;
+        }
+
+        function setSettingToken() {
+            const expireAt = Date.now() + SETTING_TOKEN_HOURS * 60 * 60 * 1000;
+
+            sessionStorage.setItem(SETTING_TOKEN_KEY, '1');
+            sessionStorage.setItem(SETTING_TOKEN_EXPIRE_KEY, expireAt.toString());
+        }
+
+        function clearSettingToken() {
+            sessionStorage.removeItem(SETTING_TOKEN_KEY);
+            sessionStorage.removeItem(SETTING_TOKEN_EXPIRE_KEY);
+        }
+
+        function lockSettingFolder() {
+            if (!settingFolder) return;
+
+            const content = settingFolder.querySelector('.folder-content');
+            const toggleIcon = settingFolder.querySelector('.folder-toggle');
+
+            if (content) {
+                content.classList.add('hidden');
+                content.classList.remove('visible');
+            }
+
+            if (toggleIcon) {
+                toggleIcon.classList.remove('open');
+            }
+        }
+
+        function toggleFolder(folder, forceOpen) {
+            const content = folder.querySelector('.folder-content');
+            const toggleIcon = folder.querySelector('.folder-toggle');
+
+            if (!content) return;
+
+            if (forceOpen === true) {
+                content.classList.remove('hidden');
+                content.classList.add('visible');
+
+                if (toggleIcon) {
+                    toggleIcon.classList.add('open');
+                }
+
+                return;
+            }
+
+            content.classList.toggle('hidden');
+            content.classList.toggle('visible');
+
+            if (toggleIcon) {
+                toggleIcon.classList.toggle('open');
+            }
+        }
+
+        function showSettingLogin(folder) {
+            pendingSettingFolder = folder;
+
+            if (settingLoginModal) {
+                settingLoginModal.classList.remove('hidden');
+            }
+
+            if (settingLoginError) {
+                settingLoginError.classList.add('hidden');
+            }
+
+            if (settingUsername) {
+                settingUsername.value = '';
+                setTimeout(function () {
+                    settingUsername.focus();
+                }, 50);
+            }
+
+            if (settingPassword) {
+                settingPassword.value = '';
+            }
+        }
+
+        function hideSettingLogin() {
+            if (settingLoginModal) {
+                settingLoginModal.classList.add('hidden');
+            }
+
+            if (settingLoginError) {
+                settingLoginError.classList.add('hidden');
+            }
+        }
+
         if (toggleBtn && sidebar) {
             toggleBtn.addEventListener('click', function () {
-                if (document.fullscreenElement) {
-                    return;
-                }
+                if (document.fullscreenElement) return;
 
                 if (sidebar.classList.contains('w-20')) {
                     sidebar.classList.remove('w-20');
@@ -146,6 +338,134 @@
                     } else {
                         mainContent.classList.remove('ml-64');
                         mainContent.classList.add('ml-20');
+                    }
+                }
+            }
+        });
+
+        const folders = document.querySelectorAll('.nav-folder');
+
+        folders.forEach(folder => {
+            const header = folder.querySelector('.folder-header');
+
+            if (!header) return;
+
+            header.addEventListener('click', function () {
+                const isSettingFolder = folder.classList.contains('setting-folder');
+                const isSettingUnlocked = isSettingTokenValid();
+
+                if (isSettingFolder && !isSettingUnlocked) {
+                    lockSettingFolder();
+                    showSettingLogin(folder);
+                    return;
+                }
+
+                toggleFolder(folder);
+            });
+        });
+
+        const settingLinks = document.querySelectorAll('.setting-link');
+
+        settingLinks.forEach(link => {
+            link.addEventListener('click', function (event) {
+                if (!isSettingTokenValid()) {
+                    event.preventDefault();
+                    lockSettingFolder();
+
+                    if (settingFolder) {
+                        showSettingLogin(settingFolder);
+                    }
+                }
+            });
+        });
+
+        if (settingLoginForm) {
+            settingLoginForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const username = settingUsername ? settingUsername.value.trim() : '';
+                const password = settingPassword ? settingPassword.value : '';
+
+                if (username === SETTING_USERNAME && password === SETTING_PASSWORD) {
+                    setSettingToken();
+                    hideSettingLogin();
+
+                    if (pendingSettingFolder) {
+                        toggleFolder(pendingSettingFolder, true);
+                    }
+
+                    return;
+                }
+
+                if (settingLoginError) {
+                    settingLoginError.classList.remove('hidden');
+                }
+
+                if (settingPassword) {
+                    settingPassword.value = '';
+                    settingPassword.focus();
+                }
+            });
+        }
+
+        if (settingLoginClose) {
+            settingLoginClose.addEventListener('click', function () {
+                hideSettingLogin();
+            });
+        }
+
+        if (settingLoginModal) {
+            settingLoginModal.addEventListener('click', function (event) {
+                if (event.target === settingLoginModal) {
+                    hideSettingLogin();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                hideSettingLogin();
+            }
+        });
+
+        setInterval(function () {
+            const unlocked = sessionStorage.getItem(SETTING_TOKEN_KEY);
+
+            if (unlocked === '1' && !isSettingTokenValid()) {
+                lockSettingFolder();
+            }
+        }, 10000);
+
+        const currentPath = window.location.pathname.replace(/\/$/, '').toLowerCase();
+        const currentSearch = window.location.search.toLowerCase();
+        const currentFull = currentPath + currentSearch;
+        const navLinks = document.querySelectorAll('a.nav-item');
+
+        navLinks.forEach(link => {
+            const url = new URL(link.getAttribute('href'), window.location.origin);
+            const hrefPath = url.pathname.replace(/\/$/, '').toLowerCase();
+            const hrefSearch = url.search.toLowerCase();
+            const hrefFull = hrefPath + hrefSearch;
+
+            if (currentFull === hrefFull || (!hrefSearch && currentPath === hrefPath)) {
+                link.classList.add('active');
+
+                const folderContent = link.closest('.folder-content');
+
+                if (folderContent) {
+                    const parentFolder = folderContent.closest('.nav-folder');
+                    const isSettingFolder = parentFolder && parentFolder.classList.contains('setting-folder');
+                    const isSettingUnlocked = isSettingTokenValid();
+
+                    if (!isSettingFolder || isSettingUnlocked) {
+                        folderContent.classList.remove('hidden');
+                        folderContent.classList.add('visible');
+
+                        const toggleIcon = parentFolder ? parentFolder.querySelector('.folder-toggle') : null;
+
+                        if (toggleIcon) {
+                            toggleIcon.classList.add('open');
+                        }
                     }
                 }
             }
