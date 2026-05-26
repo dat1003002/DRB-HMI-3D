@@ -67,25 +67,22 @@ namespace DRB_HMI_3D.Controllers
             });
         }
 
-        private async Task<Workshop> GetWorkshopAsync(int? workshopId)
+        private async Task<Workshop?> GetWorkshopAsync(int? workshopId)
         {
-            if (workshopId.HasValue)
-            {
-                return await _context.Workshops
-                    .AsNoTracking()
-                    .AsSplitQuery()
-                    .Include(w => w.PressGroups)
-                        .ThenInclude(g => g.PressItems)
-                            .ThenInclude(p => p.Tags)
-                    .FirstOrDefaultAsync(w => w.Id == workshopId.Value);
-            }
-
-            return await _context.Workshops
+            var query = _context.Workshops
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Include(w => w.PressGroups)
                     .ThenInclude(g => g.PressItems)
-                        .ThenInclude(p => p.Tags)
+                .AsQueryable();
+
+            if (workshopId.HasValue)
+            {
+                return await query
+                    .FirstOrDefaultAsync(w => w.Id == workshopId.Value);
+            }
+
+            return await query
                 .OrderBy(w => w.Id)
                 .FirstOrDefaultAsync();
         }

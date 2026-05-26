@@ -42,7 +42,7 @@ namespace DRB_HMI_3D.Services
         private DateTime _lastConfigLoadUtc = DateTime.MinValue;
         private DateTime _lastPushUtc = DateTime.MinValue;
 
-        private readonly TimeSpan _configReloadInterval = TimeSpan.FromMinutes(5);
+        private readonly TimeSpan _configReloadInterval = TimeSpan.FromMinutes(30);
         private readonly TimeSpan _pushHeartbeatInterval = TimeSpan.FromSeconds(1);
 
         private int _hasChange = 0;

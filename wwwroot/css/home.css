@@ -59,25 +59,23 @@
 }
 
 .drb-hmi-stop-card {
-    border-color: var(--drb-stop-color) !important;
-    background: radial-gradient(circle at top left, rgba(192, 192, 192, .18), transparent 45%), linear-gradient(145deg, rgba(50, 50, 50, .96), rgba(2, 15, 31, .98)) !important;
-    box-shadow: inset 0 0 12px rgba(192, 192, 192, .22), 0 0 8px rgba(192, 192, 192, .55) !important;
 }
-
-    .drb-hmi-stop-card::after {
-        background: linear-gradient(90deg, transparent, rgba(192, 192, 192, .10), transparent) !important;
-    }
 
     .drb-hmi-stop-card .drb-hmi-no {
         border-color: var(--drb-stop-color) !important;
         color: var(--drb-stop-color) !important;
-        background: linear-gradient(180deg, rgba(74, 74, 74, .96), rgba(22, 22, 22, .98)) !important;
-        box-shadow: inset 0 0 6px rgba(192, 192, 192, .25), 0 0 6px rgba(192, 192, 192, .45) !important;
+        background: linear-gradient( 180deg, rgba(74,74,74,.96), rgba(22,22,22,.98) ) !important;
+        box-shadow: inset 0 0 6px rgba(192,192,192,.25), 0 0 6px rgba(192,192,192,.45) !important;
     }
 
+    .drb-hmi-stop-card::after {
+        background: linear-gradient(90deg, transparent, rgba(192, 192, 192, .10), transparent) !important;
+    }
     .drb-hmi-stop-card .drb-hmi-status-dot {
-        background: var(--drb-stop-color) !important;
-        box-shadow: 0 0 8px var(--drb-stop-color) !important;
+        border-color: var(--drb-stop-color) !important;
+        color: var(--drb-stop-color) !important;
+        background: linear-gradient(180deg, rgba(74, 74, 74, .96), rgba(22, 22, 22, .98)) !important;
+        box-shadow: inset 0 0 6px rgba(192, 192, 192, .25), 0 0 6px rgba(192, 192, 192, .45) !important;
     }
 
     .drb-hmi-stop-card .drb-hmi-card-mini-time {
@@ -86,10 +84,6 @@
 
     .drb-hmi-stop-card .drb-hmi-pressure-row {
         border-bottom-color: rgba(192, 192, 192, .42) !important;
-    }
-
-    .drb-hmi-stop-card .drb-hmi-pressure-label {
-        color: var(--drb-stop-color) !important;
     }
 
     .drb-hmi-stop-card .drb-hmi-chart-box {
@@ -194,7 +188,31 @@
     background: radial-gradient(circle at top left, rgba(255, 208, 0, .15), transparent 45%), linear-gradient(145deg, rgba(62, 49, 8, .96), rgba(2, 15, 31, .98)) !important;
     box-shadow: inset 0 0 14px rgba(255, 208, 0, .16), 0 0 10px rgba(255, 208, 0, .50) !important;
 }
+.drb-hmi-status-dot {
+    min-width: 50px;
+    height: 18px;
+    padding: 0 8px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #fff;
+}
 
+.drb-hmi-running .drb-hmi-status-dot {
+    background: #38ff45;
+    box-shadow: 0 0 9px #38ff45;
+}
+
+.drb-hmi-stop-card .drb-hmi-status-dot {
+    background: #C0C0C0;
+}
+
+.drb-hmi-error-card .drb-hmi-status-dot {
+    background: #ff3040;
+}
     .drb-hmi-warning-card .drb-hmi-no {
         border-color: rgba(255, 208, 0, .90) !important;
         color: #ffd000 !important;
@@ -249,12 +267,11 @@
     text-align: right;
 }
 
-.drb-hmi-status-dot {
+/*.drb-hmi-status-dot {
     width: 9px;
     height: 9px;
-    border-radius: 50%;
     flex: 0 0 9px;
-}
+}*/
 
 .drb-hmi-running .drb-hmi-status-dot {
     background: #38ff45;
@@ -274,7 +291,7 @@
 }
 
 .drb-hmi-pressure-label {
-    color: #00dfff;
+    color: white;
     font-size: 11px;
     font-weight: 900;
     line-height: 1;
@@ -309,6 +326,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: center;
+    margin-top: 5px;
     margin-bottom: 3px;
     flex: 0 0 auto;
 }
@@ -345,7 +363,7 @@
 .drb-hmi-temp-red-text,
 .drb-hmi-temp-yellow-text,
 .drb-hmi-temp-blue-text {
-    color: #93ecff;
+    color: #3dff62;
 }
 
 .drb-hmi-temp-high,

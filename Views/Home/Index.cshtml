@@ -365,7 +365,9 @@
 
                     <div class="drb-hmi-top-right">
                         <div class="drb-hmi-card-mini-time" id="time-@press.Id">@time'</div>
-                        <div class="drb-hmi-status-dot"></div>
+                        <div class="drb-hmi-status-dot" id="status-text-@press.Id">
+                            @(statusCss == "drb-hmi-running" ? "START" : "STOP")
+                        </div>
                     </div>
                 </div>
 
@@ -518,7 +520,11 @@
     (() => {
         const workshopId = @Model.Id;
         const pressureHistory = {};
-        const maxPressurePoints = 36;
+        const maxPressurePoints = 12;
+
+        let chartTick = 0;
+        let isRealtimeStarted = false;
+        let connection = null;
 
         function setText(id, value, suffix = "") {
             const element = document.getElementById(id);
@@ -527,8 +533,15 @@
                 return;
             }
 
-            const text = value === null || value === undefined || value === "" ? "--" : value;
-            element.textContent = `${text}${suffix}`;
+            const text = value === null || value === undefined || value === ""
+                ? "--"
+                : `${value}${suffix}`;
+
+            if (element.textContent === text) {
+                return;
+            }
+
+            element.textContent = text;
         }
 
         function percentText(value, total) {
@@ -588,15 +601,23 @@
                 return;
             }
 
-            const text = value;
-            element.textContent = text;
+            const text = String(value);
 
-            const number = parseFloat(String(text).replace(",", "."));
+            if (element.textContent !== text) {
+                element.textContent = text;
+            }
 
-            element.classList.remove("drb-hmi-pressure-error");
+            const number = parseFloat(text.replace(",", "."));
 
-            if (!isNaN(number) && (number < 186 || number > 206)) {
+            const isError = !isNaN(number) && (number < 186 || number > 206);
+            const hasError = element.classList.contains("drb-hmi-pressure-error");
+
+            if (isError && !hasError) {
                 element.classList.add("drb-hmi-pressure-error");
+            }
+
+            if (!isError && hasError) {
+                element.classList.remove("drb-hmi-pressure-error");
             }
         }
 
@@ -611,46 +632,47 @@
                 return;
             }
 
-            const text = value;
+            const text = String(value);
+            const displayText = text === "--" ? "--" : `${text}°C`;
 
-            if (text === "--") {
-                element.textContent = "--";
-            } else {
-                element.textContent = `${text}°C`;
+            if (element.textContent !== displayText) {
+                element.textContent = displayText;
             }
 
-            const number = parseFloat(String(text).replace(",", "."));
+            const number = parseFloat(text.replace(",", "."));
+            const isHigh = !isNaN(number) && (number < 145 || number > 155);
 
-            element.classList.remove("drb-hmi-temp-normal");
-            element.classList.remove("drb-hmi-temp-high");
-
-            if (!isNaN(number) && (number < 145 || number > 155)) {
-                element.classList.add("drb-hmi-temp-high");
-            } else {
-                element.classList.add("drb-hmi-temp-normal");
-            }
+            element.classList.toggle("drb-hmi-temp-high", isHigh);
+            element.classList.toggle("drb-hmi-temp-normal", !isHigh);
         }
 
-        function updateCardStatus(machineId, statusCss) {
-            if (!statusCss || typeof statusCss !== "string") {
-                return;
-            }
-
-            const card = document.getElementById(`machine-${machineId}`);
-
-            if (!card) {
-                return;
-            }
-
-            card.classList.remove(
-                "drb-hmi-running",
-                "drb-hmi-warning-card",
-                "drb-hmi-error-card",
-                "drb-hmi-stop-card"
-            );
-
-            card.classList.add(statusCss);
+            function updateCardStatus(machineId, statusCss) {
+        if (!statusCss || typeof statusCss !== "string") {
+            return;
         }
+
+        const card = document.getElementById(`machine-${machineId}`);
+
+        if (!card) {
+            return;
+        }
+
+        card.classList.remove(
+            "drb-hmi-running",
+            "drb-hmi-warning-card",
+            "drb-hmi-error-card",
+            "drb-hmi-stop-card"
+        );
+
+        card.classList.add(statusCss);
+
+        const statusText = document.getElementById(`status-text-${machineId}`);
+
+        if (statusText) {
+            statusText.textContent =
+    statusCss === "drb-hmi-stop-card" ? "STOP" : "START";
+        }
+    }
 
         function buildSmoothPath(points) {
             if (points.length === 0) {
@@ -696,13 +718,19 @@
                 pressureHistory[machineId] = [];
             }
 
-            pressureHistory[machineId].push(number);
+            const history = pressureHistory[machineId];
 
-            if (pressureHistory[machineId].length > maxPressurePoints) {
-                pressureHistory[machineId].shift();
+            if (history.length > 0 && history[history.length - 1] === number) {
+                return;
             }
 
-            const values = pressureHistory[machineId];
+            history.push(number);
+
+            if (history.length > maxPressurePoints) {
+                history.shift();
+            }
+
+            const values = history;
             const width = 100;
             const height = 18;
 
@@ -778,6 +806,10 @@
                 return;
             }
 
+            chartTick++;
+
+            const shouldUpdateChart = chartTick % 3 === 0;
+
             if (Array.isArray(data.machines)) {
                 data.machines.forEach(machine => {
                     if (machine.statusReadOk) {
@@ -790,7 +822,10 @@
 
                     if (machine.pressureReadOk) {
                         setPressureText(`pressure-${machine.id}`, machine.pressure);
-                        updatePressureChart(machine.id, machine.pressure);
+
+                        if (shouldUpdateChart) {
+                            updatePressureChart(machine.id, machine.pressure);
+                        }
                     }
 
                     if (machine.tempTopReadOk) {
@@ -823,12 +858,19 @@
         }
 
         async function startRealtime() {
+            if (isRealtimeStarted) {
+                return;
+            }
+
+            isRealtimeStarted = true;
+
             if (!window.signalR) {
+                isRealtimeStarted = false;
                 setTimeout(startRealtime, 2000);
                 return;
             }
 
-            const connection = new signalR.HubConnectionBuilder()
+            connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/hmi-realtime")
                 .withAutomaticReconnect([0, 1000, 3000, 5000])
                 .build();
@@ -845,14 +887,30 @@
                 }
             });
 
+            connection.onclose(() => {
+                isRealtimeStarted = false;
+                setTimeout(startRealtime, 5000);
+            });
+
             try {
                 await connection.start();
                 await connection.invoke("JoinWorkshop", workshopId);
             } catch (error) {
                 console.log("SignalR connect error:", error);
-                setTimeout(startRealtime, 2000);
+                isRealtimeStarted = false;
+                setTimeout(startRealtime, 5000);
             }
         }
+
+        window.addEventListener("beforeunload", async () => {
+            try {
+                if (connection) {
+                    await connection.invoke("LeaveWorkshop", workshopId);
+                    await connection.stop();
+                }
+            } catch {
+            }
+        });
 
         startRealtime();
     })();
