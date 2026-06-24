@@ -26,11 +26,11 @@ namespace DRB_HMI_3D.Services
         private readonly string _endpointUrl = "opc.tcp://192.168.41.30:49320";
 
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly HmiRealtimeStore _store;
         private readonly IHubContext<HmiRealtimeHub> _hubContext;
         private readonly ILogger<KepwareSubscriptionWorker> _logger;
 
-        private readonly ConcurrentDictionary<string, TagValueState> _latestValues = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, TagValueState> _latestValues =
+            new(StringComparer.OrdinalIgnoreCase);
 
         private ApplicationConfiguration _config;
         private Session _session;
@@ -41,20 +41,24 @@ namespace DRB_HMI_3D.Services
 
         private DateTime _lastConfigLoadUtc = DateTime.MinValue;
         private DateTime _lastPushUtc = DateTime.MinValue;
+        private DateTime _lastSessionCheckUtc = DateTime.MinValue;
+        private DateTime _lastConnectFailUtc = DateTime.MinValue;
+        private DateTime _lastHeartbeatUtc = DateTime.MinValue;
 
         private readonly TimeSpan _configReloadInterval = TimeSpan.FromMinutes(30);
-        private readonly TimeSpan _pushHeartbeatInterval = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan _sessionCheckInterval = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan _connectRetryInterval = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _pushInterval = TimeSpan.FromMilliseconds(200);
+        private readonly TimeSpan _heartbeatInterval = TimeSpan.FromSeconds(2);
 
         private int _hasChange = 0;
 
         public KepwareSubscriptionWorker(
             IServiceScopeFactory scopeFactory,
-            HmiRealtimeStore store,
             IHubContext<HmiRealtimeHub> hubContext,
             ILogger<KepwareSubscriptionWorker> logger)
         {
             _scopeFactory = scopeFactory;
-            _store = store;
             _hubContext = hubContext;
             _logger = logger;
         }
@@ -65,7 +69,14 @@ namespace DRB_HMI_3D.Services
             {
                 try
                 {
-                    await EnsureConfigSessionAndSubscriptionAsync(stoppingToken);
+                    // Chỉ kiểm tra session/config mỗi 3 giây, không phải mỗi 50ms
+                    // để tránh SelectEndpoint() blocking thread liên tục
+                    if (DateTime.UtcNow - _lastSessionCheckUtc >= _sessionCheckInterval)
+                    {
+                        _lastSessionCheckUtc = DateTime.UtcNow;
+                        await EnsureConfigSessionAndSubscriptionAsync(stoppingToken);
+                    }
+
                     await PushRealtimeIfNeededAsync(stoppingToken);
                 }
                 catch (OperationCanceledException)
@@ -76,10 +87,12 @@ namespace DRB_HMI_3D.Services
                 {
                     _logger.LogError(ex, "Kepware subscription worker error");
                     ResetOpc();
+                    _lastSessionCheckUtc = DateTime.MinValue;
+                    _lastConnectFailUtc = DateTime.UtcNow;
                     Interlocked.Exchange(ref _hasChange, 1);
                 }
 
-                await Task.Delay(100, stoppingToken);
+                await Task.Delay(50, stoppingToken);
             }
         }
 
@@ -219,6 +232,12 @@ namespace DRB_HMI_3D.Services
                 return;
             }
 
+            // Nếu vừa mới fail, chờ đủ thời gian mới thử lại
+            if (DateTime.UtcNow - _lastConnectFailUtc < _connectRetryInterval)
+            {
+                return;
+            }
+
             ResetOpc();
 
             _config = new ApplicationConfiguration
@@ -286,29 +305,42 @@ namespace DRB_HMI_3D.Services
                 e.Accept = true;
             };
 
-            var endpointDescription = CoreClientUtils.SelectEndpoint(
-                _config,
-                _endpointUrl,
-                false
-            );
+            try
+            {
+                var endpointDescription = CoreClientUtils.SelectEndpoint(
+                    _config,
+                    _endpointUrl,
+                    false
+                );
 
-            var endpointConfiguration = EndpointConfiguration.Create(_config);
+                var endpointConfiguration = EndpointConfiguration.Create(_config);
 
-            var endpoint = new ConfiguredEndpoint(
-                null,
-                endpointDescription,
-                endpointConfiguration
-            );
+                var endpoint = new ConfiguredEndpoint(
+                    null,
+                    endpointDescription,
+                    endpointConfiguration
+                );
 
-            _session = await Session.Create(
-                _config,
-                endpoint,
-                false,
-                "DRB_HMI_3D_SUBSCRIPTION_SESSION",
-                120000,
-                null,
-                null
-            );
+                _session = await Session.Create(
+                    _config,
+                    endpoint,
+                    false,
+                    "DRB_HMI_3D_SUBSCRIPTION_SESSION",
+                    30000,
+                    null,
+                    null
+                );
+
+                _lastConnectFailUtc = DateTime.MinValue;
+                _logger.LogInformation("OPC UA session connected to {Url}", _endpointUrl);
+            }
+            catch (Exception ex)
+            {
+                _lastConnectFailUtc = DateTime.UtcNow;
+                _logger.LogWarning("OPC UA connect failed, retry in {Sec}s: {Msg}",
+                    _connectRetryInterval.TotalSeconds, ex.Message);
+                ResetOpc();
+            }
         }
 
         private void RebuildSubscription()
@@ -332,9 +364,10 @@ namespace DRB_HMI_3D.Services
 
             _subscription = new Subscription(_session.DefaultSubscription)
             {
-                PublishingInterval = 250,
-                KeepAliveCount = 10,
-                LifetimeCount = 60,
+                PublishingInterval = 100,
+
+                KeepAliveCount = 100,
+                LifetimeCount = 600,
                 MaxNotificationsPerPublish = 5000,
                 PublishingEnabled = true,
                 Priority = 100
@@ -361,7 +394,9 @@ namespace DRB_HMI_3D.Services
                         StartNodeId = NodeId.Parse(address),
                         AttributeId = Attributes.Value,
                         DisplayName = address,
-                        SamplingInterval = 250,
+
+                        SamplingInterval = 100,
+
                         QueueSize = 1,
                         DiscardOldest = true,
                         Handle = address
@@ -397,7 +432,9 @@ namespace DRB_HMI_3D.Services
             }
         }
 
-        private void OnMonitoredItemNotification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+        private void OnMonitoredItemNotification(
+            MonitoredItem monitoredItem,
+            MonitoredItemNotificationEventArgs e)
         {
             var address = monitoredItem.Handle as string;
 
@@ -438,23 +475,43 @@ namespace DRB_HMI_3D.Services
 
         private async Task PushRealtimeIfNeededAsync(CancellationToken stoppingToken)
         {
-            var hasChange = Interlocked.Exchange(ref _hasChange, 0) == 1;
-            var needHeartbeat = DateTime.UtcNow - _lastPushUtc >= _pushHeartbeatInterval;
-
-            if (!hasChange && !needHeartbeat)
+            if (_machineConfigs.Count == 0)
             {
                 return;
             }
 
-            _lastPushUtc = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
+
+            var hasChange = Interlocked.Exchange(ref _hasChange, 0) == 1;
+            var heartbeat = now - _lastHeartbeatUtc >= _heartbeatInterval;
+
+            // Push khi có thay đổi thực sự, hoặc heartbeat 2 giây để giữ realtime
+            if (!hasChange && !heartbeat)
+            {
+                return;
+            }
+
+            var enoughTimePassed = now - _lastPushUtc >= _pushInterval;
+
+            if (!enoughTimePassed)
+            {
+                if (hasChange)
+                {
+                    Interlocked.Exchange(ref _hasChange, 1);
+                }
+                return;
+            }
+
+            _lastPushUtc = now;
+            _lastHeartbeatUtc = now;
 
             foreach (var group in _machineConfigs.GroupBy(x => x.WorkshopId))
             {
                 var workshopId = group.Key;
                 var data = BuildWorkshopData(group.ToList(), _latestValues);
 
-                _store.SetWorkshopData(workshopId, data);
-
+                // Chỉ hiển thị realtime qua SignalR.
+                // Không lưu vào HmiRealtimeStore.
                 await _hubContext.Clients
                     .Group(HmiRealtimeHub.GroupName(workshopId))
                     .SendAsync("RealtimeUpdate", data, stoppingToken);
@@ -656,32 +713,45 @@ namespace DRB_HMI_3D.Services
         {
             var name = Normalize(tagName);
 
-            if (name.Contains("START/STOP") || name.Contains("TRANG THAI") || name.Contains("TRẠNG THÁI") || name.Contains("STATUS"))
+            if (name.Contains("START/STOP") ||
+                name.Contains("TRANG THAI") ||
+                name.Contains("TRẠNG THÁI") ||
+                name.Contains("STATUS"))
             {
                 return "STATUS";
             }
 
-            if (name.Contains("THOI GIAN LUU HOA") || name.Contains("THỜI GIAN LƯU HÓA") || name.Contains("TIME"))
+            if (name.Contains("THOI GIAN LUU HOA") ||
+                name.Contains("THỜI GIAN LƯU HÓA") ||
+                name.Contains("TIME"))
             {
                 return "TIME";
             }
 
-            if (name.Contains("AP LUC") || name.Contains("ÁP LỰC") || name.Contains("PRESSURE"))
+            if (name.Contains("AP LUC") ||
+                name.Contains("ÁP LỰC") ||
+                name.Contains("PRESSURE"))
             {
                 return "PRESSURE";
             }
 
-            if (name.Contains("NHIET DO MAM TREN") || name.Contains("NHIỆT ĐỘ MÂM TRÊN") || name.Contains("TEMP TOP"))
+            if (name.Contains("NHIET DO MAM TREN") ||
+                name.Contains("NHIỆT ĐỘ MÂM TRÊN") ||
+                name.Contains("TEMP TOP"))
             {
                 return "TEMP_TOP";
             }
 
-            if (name.Contains("NHIET DO MAM GIUA") || name.Contains("NHIỆT ĐỘ MÂM GIỮA") || name.Contains("TEMP MID"))
+            if (name.Contains("NHIET DO MAM GIUA") ||
+                name.Contains("NHIỆT ĐỘ MÂM GIỮA") ||
+                name.Contains("TEMP MID"))
             {
                 return "TEMP_MID";
             }
 
-            if (name.Contains("NHIET DO MAM DUOI") || name.Contains("NHIỆT ĐỘ MÂM DƯỚI") || name.Contains("TEMP BOTTOM"))
+            if (name.Contains("NHIET DO MAM DUOI") ||
+                name.Contains("NHIỆT ĐỘ MÂM DƯỚI") ||
+                name.Contains("TEMP BOTTOM"))
             {
                 return "TEMP_BOTTOM";
             }
@@ -805,6 +875,11 @@ namespace DRB_HMI_3D.Services
                 if (_subscription != null)
                 {
                     _subscription.Delete(true);
+
+                    if (_session != null)
+                    {
+                        _session.RemoveSubscription(_subscription);
+                    }
                 }
             }
             catch

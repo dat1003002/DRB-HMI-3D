@@ -146,21 +146,11 @@
         function setText(id, value) {
             const element = document.getElementById(id);
 
-            if (!element) {
+            if (!element || element.textContent === value) {
                 return;
             }
 
             element.textContent = value;
-        }
-
-        function setHtml(id, html) {
-            const element = document.getElementById(id);
-
-            if (!element) {
-                return;
-            }
-
-            element.innerHTML = html;
         }
 
         function toNumber(value) {
@@ -229,22 +219,6 @@
                 value === "DỪNG";
         }
 
-        function statusHtml(statusValue) {
-            if (isStartStatus(statusValue)) {
-                return `
-                    <div class="drb6-btn-status drb6-start">
-                        <span class="drb6-play"></span> START
-                    </div>
-                `;
-            }
-
-            return `
-                <div class="drb6-btn-status drb6-stop">
-                    <span class="drb6-square"></span> STOP
-                </div>
-            `;
-        }
-
         function setAlarm(id, isAlarm) {
             const element = document.getElementById(id);
 
@@ -297,8 +271,26 @@
             const id = Number(machine.id);
 
             const isRunning = machine.statusReadOk === true && isStartStatus(machine.statusValue);
+            const wasRunning = drb6RunState.get(id);
 
-            setHtml(`drb6-status-${id}`, statusHtml(isRunning ? "START" : "STOP"));
+            if (wasRunning !== isRunning) {
+                const statusEl = document.getElementById(`drb6-status-${id}`);
+                if (statusEl) {
+                    const btn = statusEl.querySelector(".drb6-btn-status");
+                    if (btn) {
+                        if (isRunning) {
+                            btn.classList.remove("drb6-stop");
+                            btn.classList.add("drb6-start");
+                            btn.innerHTML = '<span class="drb6-play"></span> START';
+                        } else {
+                            btn.classList.remove("drb6-start");
+                            btn.classList.add("drb6-stop");
+                            btn.innerHTML = '<span class="drb6-square"></span> STOP';
+                        }
+                    }
+                }
+            }
+
             drb6RunState.set(id, isRunning);
 
             const allowAlarm = isRunning === true;

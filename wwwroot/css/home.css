@@ -71,6 +71,7 @@
     .drb-hmi-stop-card::after {
         background: linear-gradient(90deg, transparent, rgba(192, 192, 192, .10), transparent) !important;
     }
+
     .drb-hmi-stop-card .drb-hmi-status-dot {
         border-color: var(--drb-stop-color) !important;
         color: var(--drb-stop-color) !important;
@@ -188,6 +189,7 @@
     background: radial-gradient(circle at top left, rgba(255, 208, 0, .15), transparent 45%), linear-gradient(145deg, rgba(62, 49, 8, .96), rgba(2, 15, 31, .98)) !important;
     box-shadow: inset 0 0 14px rgba(255, 208, 0, .16), 0 0 10px rgba(255, 208, 0, .50) !important;
 }
+
 .drb-hmi-status-dot {
     min-width: 50px;
     height: 18px;
@@ -213,16 +215,17 @@
 .drb-hmi-error-card .drb-hmi-status-dot {
     background: #ff3040;
 }
-    .drb-hmi-warning-card .drb-hmi-no {
-        border-color: rgba(255, 208, 0, .90) !important;
-        color: #ffd000 !important;
-        box-shadow: inset 0 0 8px rgba(255, 208, 0, .24), 0 0 7px rgba(255, 208, 0, .45) !important;
-    }
 
-    .drb-hmi-warning-card .drb-hmi-status-dot {
-        background: #ffd000;
-        box-shadow: 0 0 9px #ffd000;
-    }
+.drb-hmi-warning-card .drb-hmi-no {
+    border-color: rgba(255, 208, 0, .90) !important;
+    color: #ffd000 !important;
+    box-shadow: inset 0 0 8px rgba(255, 208, 0, .24), 0 0 7px rgba(255, 208, 0, .45) !important;
+}
+
+.drb-hmi-warning-card .drb-hmi-status-dot {
+    background: #ffd000;
+    box-shadow: 0 0 9px #ffd000;
+}
 
 .drb-hmi-card-top {
     position: relative;
@@ -267,11 +270,7 @@
     text-align: right;
 }
 
-/*.drb-hmi-status-dot {
-    width: 9px;
-    height: 9px;
-    flex: 0 0 9px;
-}*/
+
 
 .drb-hmi-running .drb-hmi-status-dot {
     background: #38ff45;
@@ -325,9 +324,11 @@
     z-index: 2;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: center;
-    margin-top: 5px;
+    align-items: end;
+    gap: 0;
+    margin-top: auto;
     margin-bottom: 3px;
+    padding-top: 5px;
     flex: 0 0 auto;
 }
 
@@ -596,6 +597,7 @@
     color: var(--drb-stop-color) !important;
     text-shadow: 0 0 8px rgba(192, 192, 192, .55) !important;
 }
+
 .drb-hmi-white {
     color: #fff;
 }
@@ -657,6 +659,68 @@
     text-align: right;
     white-space: nowrap;
     letter-spacing: .4px;
+}
+
+
+@media (min-width: 1401px) and (min-height: 901px) {
+    .drb-hmi-wrap {
+        --drb-footer-height: 88px;
+        --drb-page-padding-y: 10px;
+        --drb-grid-gap: 6px;
+        --drb-card-padding-y: 7px;
+        --drb-chart-height: 14px;
+    }
+
+    .drb-hmi-card {
+        padding-bottom: 7px;
+    }
+
+    .drb-hmi-card-top {
+        margin-bottom: 6px;
+    }
+
+    .drb-hmi-pressure-row {
+        padding-bottom: 5px;
+        margin-bottom: 5px;
+    }
+
+    .drb-hmi-temp-row {
+        margin-top: auto;
+        margin-bottom: 4px;
+        padding-top: 8px;
+        align-items: end;
+    }
+
+    .drb-hmi-temp-name {
+        font-size: 9px;
+        margin-bottom: 4px;
+    }
+
+    .drb-hmi-temp-value {
+        font-size: 14px;
+    }
+}
+
+@media (min-width: 1401px) and (min-height: 1080px) {
+    .drb-hmi-wrap {
+        --drb-footer-height: 96px;
+        --drb-grid-gap: 7px;
+        --drb-card-padding-y: 9px;
+        --drb-chart-height: 16px;
+    }
+
+    .drb-hmi-temp-row {
+        padding-top: 12px;
+        margin-bottom: 6px;
+    }
+
+    .drb-hmi-temp-name {
+        font-size: 9.5px;
+    }
+
+    .drb-hmi-temp-value {
+        font-size: 15px;
+    }
 }
 
 @media (min-width: 1401px) and (max-height: 900px) {
@@ -987,4 +1051,16 @@
     .drb-hmi-footer {
         grid-template-columns: 1fr;
     }
+}
+
+:fullscreen .drb-hmi-card,
+:-webkit-full-screen .drb-hmi-card,
+:-moz-full-screen .drb-hmi-card {
+    padding-bottom: 10px;
+}
+
+:fullscreen .drb-hmi-temp-row,
+:-webkit-full-screen .drb-hmi-temp-row,
+:-moz-full-screen .drb-hmi-temp-row {
+    margin-bottom: 8px;
 }
