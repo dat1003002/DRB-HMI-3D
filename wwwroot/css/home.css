@@ -294,6 +294,7 @@
     font-size: 11px;
     font-weight: 900;
     line-height: 1;
+    white-space: nowrap;
 }
 
 .drb-hmi-pressure-value {
@@ -667,33 +668,33 @@
         --drb-footer-height: 88px;
         --drb-page-padding-y: 10px;
         --drb-grid-gap: 6px;
-        --drb-card-padding-y: 7px;
+        --drb-card-padding-y: 4px;
         --drb-chart-height: 14px;
     }
 
     .drb-hmi-card {
-        padding-bottom: 7px;
+        padding-bottom: 3px;
     }
 
     .drb-hmi-card-top {
-        margin-bottom: 6px;
+        margin-bottom: 3px;
     }
 
     .drb-hmi-pressure-row {
-        padding-bottom: 5px;
-        margin-bottom: 5px;
+        padding-bottom: 2px;
+        margin-bottom: 2px;
     }
 
     .drb-hmi-temp-row {
         margin-top: auto;
-        margin-bottom: 4px;
-        padding-top: 8px;
+        margin-bottom: 2px;
+        padding-top: 2px;
         align-items: end;
     }
 
     .drb-hmi-temp-name {
         font-size: 9px;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
 
     .drb-hmi-temp-value {
@@ -705,13 +706,13 @@
     .drb-hmi-wrap {
         --drb-footer-height: 96px;
         --drb-grid-gap: 7px;
-        --drb-card-padding-y: 9px;
+        --drb-card-padding-y: 6px;
         --drb-chart-height: 16px;
     }
 
     .drb-hmi-temp-row {
-        padding-top: 12px;
-        margin-bottom: 6px;
+        padding-top: 6px;
+        margin-bottom: 4px;
     }
 
     .drb-hmi-temp-name {
@@ -766,6 +767,15 @@
     .drb-hmi-pressure-value {
         gap: 3px;
         font-size: 10px;
+    }
+
+    .drb-hmi-card-top {
+        margin-bottom: 2px;
+    }
+
+    .drb-hmi-temp-row {
+        padding-top: 2px;
+        margin-bottom: 2px;
     }
 
     .drb-hmi-temp-name {
@@ -1056,11 +1066,11 @@
 :fullscreen .drb-hmi-card,
 :-webkit-full-screen .drb-hmi-card,
 :-moz-full-screen .drb-hmi-card {
-    padding-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 :fullscreen .drb-hmi-temp-row,
 :-webkit-full-screen .drb-hmi-temp-row,
 :-moz-full-screen .drb-hmi-temp-row {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
